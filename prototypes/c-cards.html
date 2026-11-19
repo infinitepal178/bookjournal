@@ -1,0 +1,688 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Prototype C · Knowledge cards</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: index-card stationery. A queue/deck on Today, a composer of cards for logging,
+   flashcards for recall, a shelf of generated covers for the library. */
+:root{
+  --bg:#e7eaee; --bg2:#dde1e7; --card:#ffffff; --card2:#f6f7f9;
+  --ink:#18202b; --mute:#5b6572; --line:#cfd5dd; --rule:#e4e9f1; --shadow:rgba(24,32,43,.14);
+  --accent:#2446b3; --accent-ink:#ffffff; --accent-soft:#e2e8fb;
+  --ok:#1d7a4a; --warn:#a15c00; --bad:#b4233a;
+  --fn-bg:#fff7d6; --fn-ink:#5a4a10; --fn-line:#d9bd55;
+  --bar:#141a22; --bar-ink:#e8ecf1; --bar-mute:#98a3b1;
+  --t-book:#0f766e; --t-article:#2563eb; --t-podcast:#7c3aed; --t-video:#be185d; --t-course:#b45309; --t-conversation:#15803d; --t-quick:#64748b;
+  --cover-s:38%; --cover-l:42%; --cover-ink:#ffffff;
+  --heat0:#d9dee5; --heat1:#b9c7ec; --heat2:#7d97de; --heat3:#2446b3;
+  --f-display:"Bricolage Grotesque","Avenir Next","Segoe UI",system-ui,sans-serif;
+  --f-text:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#11161d; --bg2:#0c1016; --card:#1a212b; --card2:#212a36;
+  --ink:#e6ebf1; --mute:#9aa6b4; --line:#2f3946; --rule:#232c38; --shadow:rgba(0,0,0,.5);
+  --accent:#8ea8ff; --accent-ink:#0d1220; --accent-soft:#232f52;
+  --ok:#5fcf95; --warn:#f0b35a; --bad:#ff7d92;
+  --fn-bg:#2b2612; --fn-ink:#ead78f; --fn-line:#6b5a1e;
+  --bar:#05080c; --bar-ink:#e8ecf1; --bar-mute:#8592a2;
+  --t-book:#3cc4b6; --t-article:#6fa0ff; --t-podcast:#b48cff; --t-video:#f472b6; --t-course:#f0a14b; --t-conversation:#4ade80; --t-quick:#94a3b8;
+  --cover-s:34%; --cover-l:30%; --cover-ink:#f1f4f8;
+  --heat0:#222b36; --heat1:#2c3d6b; --heat2:#4b67b8; --heat3:#8ea8ff;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#11161d; --bg2:#0c1016; --card:#1a212b; --card2:#212a36;
+  --ink:#e6ebf1; --mute:#9aa6b4; --line:#2f3946; --rule:#232c38; --shadow:rgba(0,0,0,.5);
+  --accent:#8ea8ff; --accent-ink:#0d1220; --accent-soft:#232f52;
+  --ok:#5fcf95; --warn:#f0b35a; --bad:#ff7d92;
+  --fn-bg:#2b2612; --fn-ink:#ead78f; --fn-line:#6b5a1e;
+  --bar:#05080c; --bar-ink:#e8ecf1; --bar-mute:#8592a2;
+  --t-book:#3cc4b6; --t-article:#6fa0ff; --t-podcast:#b48cff; --t-video:#f472b6; --t-course:#f0a14b; --t-conversation:#4ade80; --t-quick:#94a3b8;
+  --cover-s:34%; --cover-l:30%; --cover-ink:#f1f4f8;
+  --heat0:#222b36; --heat1:#2c3d6b; --heat2:#4b67b8; --heat3:#8ea8ff;
+  color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--f-text);-webkit-text-size-adjust:100%}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--bar);z-index:60}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+h1,h2,h3{font-family:var(--f-display);letter-spacing:-.015em;text-wrap:balance;margin:0}
+h1{font-size:30px;font-weight:800;line-height:1.1}
+h2{font-size:20px;font-weight:700}
+h3{font-size:16px;font-weight:700}
+.mono{font-family:var(--f-mono)}
+.muted{color:var(--mute)}
+mark{background:var(--accent-soft);color:var(--ink);border-radius:2px;padding:0 1px}
+
+/* prototype bar */
+.proto{position:sticky;top:env(safe-area-inset-top,0px);z-index:50;background:var(--bar);color:var(--bar-ink);font:12px/1.2 var(--f-mono);
+  padding:8px max(16px,env(safe-area-inset-right,0px)) 8px max(16px,env(safe-area-inset-left,0px));display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center}
+.proto a{color:var(--bar-mute);text-decoration:none}
+.proto .name{color:var(--bar-ink);font-weight:600}
+.proto nav{display:flex;gap:6px;overflow-x:auto;flex:1 1 100%;min-width:0;scrollbar-width:none;padding-bottom:2px}
+.proto nav::-webkit-scrollbar{display:none}
+.proto nav button,.proto .tgl{flex:none;background:transparent;color:var(--bar-mute);border:1px solid var(--bar-mute);border-radius:999px;padding:6px 11px;font:inherit}
+.proto nav button.on{background:var(--bar-ink);color:var(--bar);border-color:var(--bar-ink)}
+.proto .tgl{margin-left:auto}
+@media (min-width:860px){.proto nav{flex:0 1 auto;order:2}.proto .tgl{order:3}}
+
+.wrap{max-width:1120px;margin:0 auto;padding-block:20px 96px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.screen{display:none}.screen.on{display:block}
+.head{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:flex-end;justify-content:space-between;margin-bottom:18px}
+.eyebrow{font:600 11px var(--f-mono);letter-spacing:.09em;text-transform:uppercase;color:var(--mute)}
+.stack{display:flex;flex-direction:column;gap:14px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.grid2{display:grid;gap:18px}
+@media (min-width:900px){.grid2{grid-template-columns:minmax(0,1.35fr) minmax(0,1fr)}}
+
+/* cards */
+.card{--band:var(--line);position:relative;background:var(--card);border:1px solid var(--line);border-radius:6px;padding:18px 16px 14px;
+  box-shadow:0 1px 0 var(--shadow),0 10px 22px -16px var(--shadow);min-width:0}
+.card::before{content:"";position:absolute;left:-1px;right:-1px;top:-1px;height:5px;border-radius:6px 6px 0 0;background:var(--band)}
+.t-book{--band:var(--t-book)}.t-article{--band:var(--t-article)}.t-podcast{--band:var(--t-podcast)}.t-video{--band:var(--t-video)}.t-course{--band:var(--t-course)}.t-conversation{--band:var(--t-conversation)}.t-quick{--band:var(--t-quick)}
+.t-action{--band:var(--warn)}.t-quote{--band:var(--mute)}.t-q{--band:var(--accent)}
+.meta{font:11px/1.5 var(--f-mono);color:var(--mute);display:flex;flex-wrap:wrap;gap:2px 10px;text-transform:uppercase;letter-spacing:.04em}
+.meta b{color:var(--band);font-weight:600}
+.idea{font-size:16.5px;line-height:28px;margin:8px 0 6px;background-image:repeating-linear-gradient(to bottom,transparent 0 27px,var(--rule) 27px 28px)}
+.quote{font:500 20px/1.35 var(--f-display);margin:10px 0 6px}
+.tag{font:11px var(--f-mono);color:var(--mute);border:1px solid var(--line);border-radius:999px;padding:1px 8px}
+.cards{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(min(100%,250px),1fr))}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1.5px solid var(--ink);background:var(--card);color:var(--ink);border-radius:8px;padding:10px 14px;font-weight:600;line-height:1.2;text-decoration:none}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.ghost{border-color:var(--line);font-weight:500}
+.btn.sm{padding:6px 10px;font-size:13px;border-radius:7px}
+.btn.wide{width:100%}
+.chip{border:1.5px solid var(--line);background:var(--card);border-radius:999px;padding:5px 12px;font-size:13px}
+.chip.on{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+input,textarea,select{width:100%;background:var(--card2);border:1.5px solid var(--line);border-radius:8px;padding:10px 12px}
+textarea{resize:vertical;min-height:72px}
+input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
+label.l{display:block;font:600 11px var(--f-mono);letter-spacing:.07em;text-transform:uppercase;color:var(--mute);margin:12px 0 5px}
+.inline{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(110px,1fr))}
+
+/* file notes */
+.fn{font:11.5px/1.5 var(--f-mono);background:var(--fn-bg);color:var(--fn-ink);border:1px dashed var(--fn-line);border-radius:5px;padding:7px 9px;margin-top:10px;overflow-wrap:anywhere}
+.fn b{font-weight:600}
+body.nonotes .fn{display:none}
+
+/* today: deck */
+.capture{display:grid;gap:8px;grid-template-columns:1fr 1fr}
+.capture .cont{grid-column:1/-1;justify-content:space-between;text-align:left}
+.deck{position:relative}
+.peek{margin:-4px 10px 0;padding:10px 14px 8px;border-radius:0 0 6px 6px;background:var(--card2);border:1px solid var(--line);border-top:none;display:flex;gap:8px;align-items:center;justify-content:space-between;font-size:13px;position:relative}
+.peek:nth-child(3){margin-inline:18px;opacity:.92}.peek:nth-child(4){margin-inline:26px;opacity:.85}.peek:nth-child(5){margin-inline:34px;opacity:.78}
+.peek .dot{width:8px;height:8px;border-radius:50%;background:var(--band);flex:none}
+.peek span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.answers{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.streak{display:flex;gap:10px;align-items:baseline;font-family:var(--f-display)}
+.streak strong{font-size:40px;line-height:1;font-weight:800}
+.leave{animation:leave .35s ease forwards}
+@keyframes leave{to{transform:translateX(40px) rotate(2deg);opacity:0}}
+
+/* composer */
+.strip{display:flex;gap:10px;overflow-x:auto;padding:4px 2px 10px;scroll-snap-type:x mandatory}
+.strip>*{flex:none;scroll-snap-align:start}
+.srccard{width:170px;text-align:left;padding:16px 12px 10px}
+.srccard.on{outline:2.5px solid var(--accent);outline-offset:1px}
+.srccard .tt{font:700 15px/1.2 var(--f-display);margin:6px 0 4px}
+.mini{width:210px;text-align:left;padding:14px 12px 10px;font-size:13.5px}
+.mini.on{outline:2.5px solid var(--accent);outline-offset:1px}
+.addcard{border:1.5px dashed var(--line);background:transparent;border-radius:6px;padding:14px;color:var(--mute);font-weight:600;width:100%}
+.savebar{position:sticky;bottom:0;padding:12px 0 calc(12px + env(safe-area-inset-bottom,0px));background:linear-gradient(to top,var(--bg) 70%,transparent)}
+.seg{display:inline-flex;border:1.5px solid var(--ink);border-radius:8px;overflow:hidden}
+.seg button{border:none;background:var(--card);padding:7px 14px;font-weight:600}
+.seg button.on{background:var(--ink);color:var(--bg)}
+.x{position:absolute;right:8px;top:10px;border:none;background:none;color:var(--mute);font-size:18px}
+
+/* library shelf */
+.shelf{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(min(46%,180px),1fr))}
+.tile{text-align:left;padding:0;border:none;background:none;min-width:0}
+.cover{--h:200;position:relative;aspect-ratio:3/4;max-width:100%;border-radius:4px 7px 7px 4px;padding:16px 12px 12px 18px;color:var(--cover-ink);
+  background:linear-gradient(160deg,hsl(var(--h) var(--cover-s) calc(var(--cover-l) + 8%)),hsl(var(--h) var(--cover-s) var(--cover-l)));
+  box-shadow:inset 6px 0 0 hsl(var(--h) var(--cover-s) calc(var(--cover-l) - 10%)),0 8px 18px -12px var(--shadow);display:flex;flex-direction:column;overflow:hidden}
+.cover .ty{font:600 10px var(--f-mono);letter-spacing:.1em;text-transform:uppercase;opacity:.85}
+.cover .tt{font:800 19px/1.08 var(--f-display);margin-top:10px;overflow-wrap:anywhere}
+.cover .au{margin-top:auto;font-size:12px;opacity:.9}
+.cover.dim{filter:grayscale(.7);opacity:.75}
+.bar{height:5px;background:var(--line);border-radius:3px;overflow:hidden;margin:8px 0 4px}
+.bar i{display:block;height:100%;background:var(--accent)}
+.tile .sub{font:11px/1.4 var(--f-mono);color:var(--mute)}
+.shelf-h{display:flex;justify-content:space-between;align-items:baseline;margin:22px 0 10px;border-bottom:1.5px solid var(--ink);padding-bottom:4px}
+.detail-top{display:grid;gap:18px;grid-template-columns:120px minmax(0,1fr);align-items:start}
+@media (min-width:700px){.detail-top{grid-template-columns:180px minmax(0,1fr)}}
+.stars button{border:none;background:none;font-size:28px;color:var(--line);padding:0 2px}
+.stars button.on{color:var(--warn)}
+.timeline{border-left:2px solid var(--line);margin-left:6px;padding-left:14px;display:flex;flex-direction:column;gap:8px;font-size:14px}
+
+/* review */
+.tabs{display:inline-flex;gap:4px;background:var(--bg2);padding:4px;border-radius:10px;margin-bottom:16px}
+.tabs button{border:none;background:none;padding:8px 16px;border-radius:7px;font-weight:600;color:var(--mute)}
+.tabs button.on{background:var(--card);color:var(--ink);box-shadow:0 1px 3px var(--shadow)}
+.dots{display:flex;gap:6px}
+.dots i{width:22px;height:6px;border-radius:3px;background:var(--line)}
+.dots i.done{background:var(--ok)}.dots i.cur{background:var(--accent)}
+.flip{perspective:1400px;max-width:560px}
+.flip-in{display:grid;transition:transform .55s cubic-bezier(.3,.7,.2,1);transform-style:preserve-3d}
+.flip.flipped .flip-in{transform:rotateY(180deg)}
+.face{grid-area:1/1;backface-visibility:hidden;-webkit-backface-visibility:hidden;min-height:250px;display:flex;flex-direction:column}
+.face.back{transform:rotateY(180deg)}
+@media (prefers-reduced-motion:reduce){.flip-in{transition:none}.leave{animation:none;opacity:0}}
+.ladder{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin:14px 0 4px;max-width:560px}
+.ladder span{text-align:center;font:600 12px var(--f-mono);padding:8px 0;border-radius:6px;background:var(--card2);border:1.5px solid var(--line);color:var(--mute)}
+.ladder span.cur{border-color:var(--ink);color:var(--ink)}
+.ladder span.to{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.ans{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:560px;margin-top:12px}
+.ans button{border:1.5px solid var(--line);background:var(--card);border-radius:8px;padding:10px 6px;font-weight:700;display:flex;flex-direction:column;align-items:center;gap:2px}
+.ans button small{font:400 11px var(--f-mono);color:var(--mute)}
+.ans button.on{border-color:var(--ink);background:var(--ink);color:var(--bg)}
+.ans button.on small{color:var(--bg)}
+.stats{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));margin-bottom:16px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:10px 12px}
+.stat strong{display:block;font:800 24px/1.1 var(--f-display);font-variant-numeric:tabular-nums}
+.stat span{font-size:12px;color:var(--mute)}
+.star{position:absolute;right:8px;top:10px;border:1.5px solid var(--line);background:var(--card);border-radius:999px;width:32px;height:32px;font-size:16px;color:var(--mute)}
+.starred{outline:2.5px solid var(--warn);outline-offset:1px}
+.starred .star{background:var(--warn);border-color:var(--warn);color:var(--card)}
+
+/* history */
+.heat-wrap{overflow-x:auto}
+.heat{display:grid;grid-auto-flow:column;grid-template-rows:repeat(7,14px);gap:3px;width:max-content}
+.heat i{width:14px;height:14px;border-radius:3px;background:var(--heat0)}
+.heat i.l1{background:var(--heat1)}.heat i.l2{background:var(--heat2)}.heat i.l3{background:var(--heat3)}.heat i.f{background:transparent;border:1px dashed var(--line)}
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;text-align:center;max-width:420px}
+.cal .dow{font:600 10px var(--f-mono);color:var(--mute);padding:2px 0}
+.cal button{aspect-ratio:1;border:1px solid var(--line);background:var(--card);border-radius:6px;font:12px var(--f-mono);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:0}
+.cal button i{width:7px;height:7px;border-radius:50%;background:var(--accent)}
+.cal button i.ring{background:transparent;border:1.5px solid var(--accent)}
+.cal button.today{border:2px solid var(--ink);font-weight:700}
+.cal button.sel{background:var(--accent-soft)}
+.cal button:disabled{opacity:.45;cursor:default}
+
+.toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translate(-50%,140%);opacity:0;background:var(--bar);color:var(--bar-ink);
+  border-radius:8px;padding:12px 14px;font:12.5px/1.5 var(--f-mono);width:min(520px,calc(100% - 32px));z-index:70;transition:transform .3s,opacity .3s;pointer-events:none}
+.toast.show{transform:translate(-50%,0);opacity:1}
+.toast b{color:var(--bar-ink)}.toast span{color:var(--bar-mute);overflow-wrap:anywhere}
+.check{display:flex;flex-direction:column;gap:4px;margin-top:12px;font-size:14px}
+.check div::before{content:"✓ ";color:var(--ok);font-weight:700}
+</style>
+</head>
+<body>
+<div class="proto">
+  <a href="index.html">← All prototypes</a>
+  <span class="name">C · Knowledge cards</span>
+  <nav id="nav">
+    <button data-go="connect">Connect</button><button data-go="today">Today</button><button data-go="log">Log</button>
+    <button data-go="library">Library</button><button data-go="review">Review</button><button data-go="history">History</button>
+  </nav>
+  <button class="tgl" id="notesTgl">Notes: on</button>
+</div>
+
+<main class="wrap">
+
+<!-- CONNECT -->
+<section class="screen" id="s-connect" data-screen="connect">
+  <div style="max-width:480px;margin:24px auto 0" class="stack">
+    <div class="eyebrow">First run on this device</div>
+    <h1>Where do your cards live?</h1>
+    <p class="muted" style="margin:0">A private GitHub repo you own. Every idea, quote and plan becomes a line in a Markdown file there.</p>
+    <div class="card t-q">
+      <label class="l" for="cRepo">Private repo</label><input id="cRepo" value="infinitepal178/bookjournal-data">
+      <label class="l" for="cTok">Fine-grained token</label><input id="cTok" type="password" placeholder="github_pat_…">
+      <div class="row" style="margin-top:14px"><button class="btn ghost" id="cCheck">Check access</button><button class="btn primary" id="cGo">Connect</button></div>
+      <div class="check" id="cRes" hidden><div>Repo is private</div><div>Token can write (Contents: read and write)</div><div>Token stays on this device only</div></div>
+      <div class="fn"><b>First connect creates, if missing:</b> README.md · .journal/config.json · .journal/index.json · .journal/recall.json<br>commit: <b>Set up journal</b></div>
+    </div>
+  </div>
+</section>
+
+<!-- TODAY -->
+<section class="screen" id="s-today" data-screen="today">
+  <div class="head">
+    <div><div class="eyebrow">Thu 19 Nov 2026 · week 47</div><h1>Your queue</h1></div>
+    <div class="streak"><strong>12</strong><span class="muted">day streak · best 19</span></div>
+  </div>
+  <div class="grid2">
+    <div class="stack">
+      <div class="row" style="justify-content:space-between"><div class="eyebrow" id="qCount">5 cards due</div><span class="muted" style="font-size:13px">Work top to bottom</span></div>
+      <div class="deck" id="deck"></div>
+      <div class="card t-action" style="opacity:.85">
+        <div class="meta"><b>Action</b><span>Upcoming</span><span>Tue 24 Nov</span></div>
+        <div style="margin-top:6px">Ask for a 5-minute pre-mortem in Tuesday planning</div>
+        <div class="muted" style="font-size:13px;margin-top:4px">From Coffee with Jo · 10 Nov</div>
+      </div>
+    </div>
+    <div class="stack">
+      <div class="eyebrow">Capture</div>
+      <div class="capture">
+        <button class="btn primary" data-go="log">+ Log a learning</button>
+        <button class="btn" id="quickBtn">Quick note</button>
+        <button class="btn ghost cont" id="contBtn"><span>Continue <b>The Patient Mind</b></span><span class="mono muted" style="font-size:12px">p. 142 · 46%</span></button>
+      </div>
+      <div class="card t-quick" id="quickCard" hidden>
+        <div class="meta"><b>Quick card</b><span>one idea, one sentence</span></div>
+        <textarea id="quickText" style="margin-top:10px;min-height:60px" placeholder="What did you learn?">Hand-written notes slow me down enough to think.</textarea>
+        <select id="quickSrc" style="margin-top:8px"><option value="the-patient-mind">The Patient Mind (last used)</option><option value="intro-to-statistics">Intro to Statistics</option><option value="quick">No source</option></select>
+        <div class="row" style="margin-top:10px"><button class="btn primary sm" id="quickSave">Save card</button><button class="btn ghost sm" id="quickCancel">Cancel</button></div>
+        <div class="fn" id="quickFn"><b>writes</b> daily/2026/11/2026-11-19/the-patient-mind.md (mode: quick) · .journal/index.json · .journal/recall.json</div>
+      </div>
+      <button class="card t-q" data-go="review" data-tab="weekly" style="text-align:left;width:100%">
+        <div class="meta"><b>Weekly review</b><span>Sunday · in 3 days</span></div>
+        <h3 style="margin-top:6px">9 idea cards this week to sort</h3>
+        <div class="muted" style="font-size:13px">Star your top 3, note what you applied, pick what to read next.</div>
+      </button>
+      <div class="card">
+        <div class="meta"><span>This week</span></div>
+        <div class="stats" style="margin:8px 0 0"><div class="stat"><strong>9</strong><span>ideas</span></div><div class="stat"><strong>74</strong><span>pages</span></div><div class="stat"><strong>4</strong><span>sources</span></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- LOG -->
+<section class="screen" id="s-log" data-screen="log">
+  <div class="head">
+    <div><div class="eyebrow">Thu 19 Nov · composer</div><h1>New cards</h1></div>
+    <div class="seg"><button class="on" data-mode="full">Full</button><button data-mode="quick">Quick</button></div>
+  </div>
+  <div id="logFull" class="stack" style="max-width:760px">
+    <div>
+      <div class="eyebrow" style="margin-bottom:8px">1 · Source</div>
+      <div class="strip" id="srcStrip"></div>
+      <div class="card" id="newSrc" hidden>
+        <button class="x" aria-label="Close" id="newSrcX">×</button>
+        <div class="meta"><b>New source</b></div>
+        <div class="row" style="margin-top:10px" id="typeChips"></div>
+        <label class="l" for="nsTitle">Title</label><input id="nsTitle" placeholder="e.g. Notes on Craft">
+        <div class="inline"><div><label class="l" for="nsAuth">Author / host</label><input id="nsAuth" placeholder="Ruth Abara"></div><div><label class="l" for="nsLink">Link</label><input id="nsLink" placeholder="https://"></div></div>
+        <div class="fn"><b>creates</b> sources/books/notes-on-craft.md</div>
+      </div>
+    </div>
+    <div class="card t-book" id="progCard">
+      <div class="meta"><b>2 · Progress</b><span id="progSrc">The Patient Mind · 312 pp</span></div>
+      <div class="row" style="margin-top:10px"><div class="seg" id="unitSeg"><button class="on" data-u="page">Page</button><button data-u="chapter">Chapter</button><button data-u="pct">%</button></div></div>
+      <div class="inline" id="progInputs" style="margin-top:6px">
+        <div><label class="l" for="pFrom">From page</label><input id="pFrom" value="142" inputmode="numeric"></div>
+        <div><label class="l" for="pTo">To page</label><input id="pTo" value="168" inputmode="numeric"></div>
+        <div><label class="l" for="pCh">Chapter (optional)</label><input id="pCh" value="7. Rituals"></div>
+      </div>
+      <div class="mono muted" style="font-size:12px;margin-top:8px" id="progOut">26 pages · now 54% of the book</div>
+    </div>
+    <div>
+      <div class="eyebrow" style="margin-bottom:8px">3 · Idea cards <span class="muted">(1–3, in your own words)</span></div>
+      <div class="cards" id="ideaCards" style="grid-template-columns:1fr"></div>
+      <button class="addcard" id="addIdea" style="margin-top:10px">+ another card</button>
+    </div>
+    <div>
+      <div class="eyebrow" style="margin-bottom:8px">4 · Quote card <span class="muted">(optional)</span></div>
+      <button class="addcard" id="addQuote">+ quote card</button>
+      <div class="card t-quote" id="quoteCard" hidden>
+        <div class="meta"><b>Worth keeping</b><span>The Patient Mind</span></div>
+        <textarea id="qText" style="margin-top:10px;font-family:var(--f-display);font-size:18px" placeholder="A line worth keeping"></textarea>
+        <div class="inline"><div><label class="l" for="qPage">Page</label><input id="qPage" placeholder="151" inputmode="numeric"></div></div>
+      </div>
+    </div>
+    <div class="card t-action">
+      <div class="meta"><b>5 · Action card</b><span>I'll try</span></div>
+      <textarea id="tryText" style="margin-top:10px;min-height:56px" placeholder="What will you try?">Start each work block with the same two-minute ritual: clear desk, one tab, timer.</textarea>
+      <label class="l">Ask me "Did you try it?"</label>
+      <div class="row" id="whenChips"></div>
+      <input type="date" id="whenDate" value="2026-11-26" style="margin-top:8px;max-width:220px" hidden>
+      <div class="mono muted" style="font-size:12px;margin-top:8px" id="whenOut">Follow-up on Fri 20 Nov</div>
+    </div>
+    <div>
+      <div class="eyebrow" style="margin-bottom:8px">6 · Link to earlier cards</div>
+      <div class="strip" id="linkStrip"></div>
+      <div class="row" id="linkChips"></div>
+    </div>
+    <div class="card t-q">
+      <div class="meta"><b>7 · Question card</b><span>optional</span></div>
+      <textarea id="qQ" style="margin-top:10px;min-height:56px" placeholder="One question it raised">Is a ritual still a ritual if I change it every week?</textarea>
+    </div>
+    <div class="savebar">
+      <button class="btn primary wide" id="saveFull">Save 1 entry · <span id="cardCount">3</span> cards</button></div>
+      <div class="fn"><b>one commit</b> learning: The Patient Mind · 2026-11-19<br>daily/2026/11/2026-11-19/the-patient-mind.md · sources/books/the-patient-mind.md · .journal/index.json · .journal/recall.json · .journal/followups.json · followups.md</div>
+
+  </div>
+  <div id="logQuick" hidden style="max-width:560px" class="stack">
+    <div class="card t-quick">
+      <div class="meta"><b>Quick card</b><span>busy day · 20 seconds</span></div>
+      <textarea id="lqText" style="margin-top:10px;font-size:17px" placeholder="One idea, one sentence"></textarea>
+      <label class="l" for="lqSrc">From</label>
+      <select id="lqSrc"><option value="the-patient-mind">The Patient Mind (last used)</option><option value="why-checklists-beat-willpower">Why Checklists Beat Willpower</option><option value="quick">No source</option></select>
+    </div>
+    <button class="btn primary wide" id="lqSave">Save card</button>
+    <div class="fn"><b>commit</b> quick: 2026-11-19 · daily/2026/11/2026-11-19/the-patient-mind.md (mode: quick), or daily/2026/11/2026-11-19/quick.md with no source</div>
+  </div>
+</section>
+
+<!-- LIBRARY -->
+<section class="screen" id="s-library" data-screen="library">
+  <div id="libList">
+    <div class="head"><div><div class="eyebrow">9 sources</div><h1>Shelf</h1></div><button class="btn sm" id="wantBtn">+ Add to reading list</button></div>
+    <div class="card t-book" id="wantForm" hidden style="max-width:520px;margin-bottom:14px">
+      <div class="meta"><b>Want to read</b></div>
+      <div class="inline"><div><label class="l" for="wTitle">Title</label><input id="wTitle" placeholder="Title"></div><div><label class="l" for="wAuth">Author</label><input id="wAuth" placeholder="Author"></div></div>
+      <div class="row" style="margin-top:10px"><button class="btn primary sm" id="wSave">Add to shelf</button></div>
+      <div class="fn"><b>creates</b> sources/books/&lt;slug&gt;.md with status: want</div>
+    </div>
+    <div class="row" id="statusChips"></div>
+    <div class="row" id="typeFilter" style="margin-top:8px"></div>
+    <div id="shelf"></div>
+  </div>
+  <div id="libDetail" hidden></div>
+</section>
+
+<!-- REVIEW -->
+<section class="screen" id="s-review" data-screen="review">
+  <div class="head"><div><div class="eyebrow">Thu 19 Nov</div><h1>Review</h1></div></div>
+  <div class="tabs"><button class="on" data-rt="recall">Recall · 4</button><button data-rt="weekly">Weekly · W47</button></div>
+  <div id="recall"></div>
+  <div id="weekly" hidden></div>
+</section>
+
+<!-- HISTORY -->
+<section class="screen" id="s-history" data-screen="history">
+  <div class="head"><div><div class="eyebrow">Every card you've made</div><h1>History</h1></div>
+    <div class="row"><div class="stat"><strong>12</strong><span>current streak</span></div><div class="stat"><strong>19</strong><span>best streak</span></div><div class="stat"><strong>148</strong><span>idea cards</span></div></div></div>
+  <input id="search" type="search" placeholder="Search ideas, quotes, sources, topics, questions…" style="max-width:620px;font-size:16px">
+  <div id="results" class="cards" style="margin-top:14px"></div>
+  <div class="grid2" id="histBody" style="margin-top:18px">
+    <div class="stack">
+      <div class="card"><div class="meta" style="margin-bottom:10px"><span>Last 12 weeks</span><span>darker = more ideas</span></div><div class="heat-wrap"><div class="heat" id="heat"></div></div></div>
+      <div class="card"><div class="meta" style="margin-bottom:10px"><span>November 2026</span><span>● entry · ○ quick only</span></div><div class="cal" id="cal"></div></div>
+    </div>
+    <div class="stack"><div class="eyebrow" id="dayTitle">Wed 18 Nov</div><div id="dayCards" class="stack"></div></div>
+  </div>
+</section>
+</main>
+<div class="toast" id="toast"></div>
+
+<script>
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let toastT;
+function toast(msg,paths=[]){const t=$('#toast');t.innerHTML=`<b>✓ ${esc(msg)}</b>${paths.length?'<br><span>'+paths.map(esc).join('<br>')+'</span>':''}`;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),3600)}
+
+const S={
+ pm:{type:'book',title:'The Patient Mind',author:'Ana Ferreira',status:'reading',path:'books/the-patient-mind',pct:46,page:142,pages:312,last:'18 Nov',entries:6,topics:['focus','habits']},
+ st:{type:'course',title:'Intro to Statistics',author:'Online course',status:'reading',path:'courses/intro-to-statistics',pct:38,prog:'week 3 of 8',last:'16 Nov',entries:3,topics:['statistics']},
+ nc:{type:'book',title:'Notes on Craft',author:'Ruth Abara',status:'want',path:'books/notes-on-craft',entries:0,topics:['writing']},
+ lc:{type:'book',title:'The Long Commute',author:'Tomas Lind',status:'finished',path:'books/the-long-commute',pct:100,last:'30 Oct',entries:9,rating:4,topics:['cities','systems'],
+   takeaway:'Systems push back. Every fix I make to a crowded system (roads, my calendar, my inbox) gets absorbed unless I also change what feeds it. I now ask "what will fill this space?" before I add capacity anywhere.'},
+ ck:{type:'article',title:'Why Checklists Beat Willpower',author:'Field Notes (blog)',status:'finished',path:'articles/2026/why-checklists-beat-willpower',pct:100,last:'17 Nov',entries:1,topics:['habits','checklists']},
+ ll:{type:'podcast',title:'The Learning Loop · Ep. 41: Spacing and forgetting',author:'The Learning Loop',status:'finished',path:'podcasts/2026/learning-loop-41-spacing',pct:100,last:'15 Nov',entries:1,topics:['memory']},
+ br:{type:'video',title:'How bridges carry load',author:'Lecture',status:'finished',path:'videos/2026/how-bridges-carry-load',pct:100,last:'13 Nov',entries:1,topics:['engineering']},
+ jo:{type:'conversation',title:'Coffee with Jo (mentor)',author:'Conversation',status:'finished',path:'conversations/2026/coffee-with-jo',pct:100,last:'10 Nov',entries:1,topics:['planning']},
+ fg:{type:'book',title:'Field Guide to Clouds',author:'Ines Halvorsen',status:'abandoned',path:'books/field-guide-to-clouds',pct:19,page:60,last:'2 Oct',entries:2,topics:['weather'],why:'Lovely photos, but I wanted the physics.'}
+};
+const I=[
+ {id:'k7f2',s:'pm',d:'18 Nov',ch:'Ch. 6',t:'Attention is a budget: every notification spends a little, even the ones I ignore.',tp:['focus','attention']},
+ {id:'p2d8',s:'pm',d:'18 Nov',ch:'Ch. 6',t:'Deep work needs a start ritual more than it needs willpower.',tp:['focus','habits']},
+ {id:'m3c9',s:'pm',d:'12 Nov',ch:'Ch. 4',t:'Boredom is the doorway to focus, not a sign it failed.',tp:['focus']},
+ {id:'e1',s:'pm',d:'16 Nov',ch:'Ch. 5',t:'Single-tasking feels slow but finishes sooner.',tp:['focus']},
+ {id:'e6',s:'pm',d:'16 Nov',ch:'Ch. 5',t:'The cost of switching shows up in the next hour, not the same minute.',tp:['attention']},
+ {id:'c1x0',s:'ck',d:'17 Nov',t:"A checklist is for the steps experts skip when they're confident, not the hard parts.",tp:['habits','checklists']},
+ {id:'e3',s:'ck',d:'17 Nov',t:'Write the checklist right after the mistake, while it still stings.',tp:['checklists']},
+ {id:'e7',s:'ck',d:'17 Nov',t:'A short pause point beats a long list nobody reads.',tp:['checklists']},
+ {id:'s4m2',s:'st',d:'16 Nov',ch:'Week 3',t:'A p-value says how surprising the data is if nothing is going on, not how likely the idea is true.',tp:['statistics']},
+ {id:'e4',s:null,d:'19 Nov',t:'Hand-written notes slow me down enough to think.',tp:['notes'],quick:true},
+ {id:'r5n1',s:'ll',d:'15 Nov',t:'Review when it feels slightly hard; easy reviews do little.',tp:['memory']},
+ {id:'b8t3',s:'br',d:'13 Nov',t:'Arches turn weight into sideways push, so the ends need something to lean on.',tp:['engineering']},
+ {id:'j6w1',s:'jo',d:'10 Nov',t:'Ask what would make the project fail before asking what would make it succeed.',tp:['planning']},
+ {id:'a9q4',s:'lc',d:'19 Aug',ch:'Ch. 3',t:'New road capacity fills with new traffic within a few years.',tp:['cities','systems']}
+];
+const QUOTE={s:'pm',d:'18 Nov',t:'A quiet hour is built, not found.',p:131};
+const QUESTION={s:'pm',d:'18 Nov',t:'Does the budget refill with sleep, or with short breaks during the day?'};
+const idea=id=>I.find(x=>x.id===id);
+const typeOf=x=>x.s?S[x.s].type:'quick';
+const srcName=x=>x.s?S[x.s].title:'Quick note';
+function ideaCard(x,extra=''){return `<article class="card t-${typeOf(x)}" data-idea="${x.id}">${extra}<div class="meta"><b>${typeOf(x)}</b><span>${esc(srcName(x))}</span><span>${x.d}</span></div><div class="idea">${esc(x.t)}</div><div class="row">${x.tp.map(t=>`<span class="tag">#${t}</span>`).join('')}<span class="tag mono">id:${x.id}</span></div></article>`}
+function quoteCard(q){return `<article class="card t-quote"><div class="meta"><b>Quote</b><span>${esc(S[q.s].title)}</span><span>p. ${q.p}</span></div><div class="quote">“${esc(q.t)}”</div><div class="muted mono" style="font-size:12px">${esc(S[q.s].author)}</div></article>`}
+function questionCard(q){return `<article class="card t-q"><div class="meta"><b>Open question</b><span>${esc(S[q.s].title)}</span><span>${q.d}</span></div><div style="margin-top:8px;font-weight:600">${esc(q.t)}</div></article>`}
+
+/* routing */
+const SCREENS=['connect','today','log','library','review','history'];
+function go(name){if(!SCREENS.includes(name))name='today';$$('.screen').forEach(s=>s.classList.toggle('on',s.dataset.screen===name));$$('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.go===name));
+ if(location.hash.slice(1)!==name)history.replaceState(null,'','#'+name);window.scrollTo(0,0)}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-go]');if(!b)return;go(b.dataset.go);if(b.dataset.tab)reviewTab(b.dataset.tab)});
+window.addEventListener('hashchange',()=>go(location.hash.slice(1)));
+$('#notesTgl').onclick=()=>{const off=document.body.classList.toggle('nonotes');$('#notesTgl').textContent='Notes: '+(off?'off':'on')};
+
+/* connect */
+$('#cCheck').onclick=()=>{$('#cRes').hidden=false};
+$('#cGo').onclick=()=>{$('#cRes').hidden=false;toast('Set up journal',['README.md','.journal/config.json','.journal/index.json','.journal/recall.json']);setTimeout(()=>go('today'),600)};
+
+/* today deck */
+const RECALL=[{id:'p2d8',step:0,hint:'Ch. 6 · #focus #habits · logged yesterday',seen:'On the 1-day step'},{id:'b8t3',step:1,hint:'Lecture · #engineering · about arches',seen:'On the 1-week step · last seen 12 Nov'},
+ {id:'j6w1',step:2,hint:'Mentor conversation · #planning · before a project starts',seen:'On the 1-month step · last seen 19 Oct'},{id:'a9q4',step:3,hint:'Ch. 3 · #cities #systems · about roads',seen:'On the 3-month step · last seen 19 Aug'}];
+const LAD=['1d','1w','1m','3m','6m'], LADL=['1 day','1 week','1 month','3 months','6 months'];
+let followDone=false;
+function renderDeck(){
+ const d=$('#deck');let h='';
+ const rest=RECALL.map(r=>idea(r.id));
+ if(!followDone){
+  h+=`<article class="card t-action" id="fuCard"><div class="meta"><b>Action · due today</b><span>From The Patient Mind · 16 Nov</span></div>
+  <h3 style="margin-top:8px">Did you try it?</h3><div style="margin-top:4px">Phone in another room for the first hour of work, Mon–Wed</div>
+  <div class="answers" id="fuAns">${["Done","Partly","Didn't","Not yet","Drop it"].map(a=>`<button class="chip" data-a="${a}">${a}</button>`).join('')}</div>
+  <textarea id="fuWhat" style="margin-top:10px;min-height:56px" placeholder="What happened?">Two of three days. Those were my best mornings.</textarea>
+  <div class="row" style="margin-top:10px"><button class="btn primary sm" id="fuSave">Save answer</button></div>
+  <div class="fn"><b>writes</b> .journal/followups.json · followups.md · commit: follow-ups</div></article>`;
+  h+=rest.map(x=>`<div class="peek t-${typeOf(x)}"><i class="dot"></i><span><b>Recall</b> · ${esc(srcName(x))}</span><span class="mono muted" style="font-size:11px;flex:none">${LAD[RECALL.find(r=>r.id===x.id).step]}</span></div>`).join('');
+ }else{
+  h+=`<article class="card t-q"><div class="meta"><b>Recall</b><span>4 cards · about 2 min</span><span>+2 waiting tomorrow</span></div>
+   <h3 style="margin-top:8px">4 ideas are ready to come back</h3><div class="muted" style="font-size:14px">${rest.map(x=>esc(srcName(x))).join(' · ')}</div>
+   <div class="row" style="margin-top:12px"><button class="btn primary" data-go="review" data-tab="recall">Start recall</button></div></article>`;
+  h+=rest.slice(1).map(x=>`<div class="peek t-${typeOf(x)}"><i class="dot"></i><span>${esc(srcName(x))}</span></div>`).join('');
+ }
+ d.innerHTML=h;$('#qCount').textContent=(followDone?4:5)+' cards due';
+ if(!followDone){let pick='';$$('#fuAns .chip').forEach(c=>c.onclick=()=>{pick=c.dataset.a;$$('#fuAns .chip').forEach(x=>x.classList.toggle('on',x===c))});
+  $('#fuSave').onclick=()=>{toast('follow-ups: '+(pick||'Done'),['.journal/followups.json','followups.md']);$('#fuCard').classList.add('leave');setTimeout(()=>{followDone=true;renderDeck()},matchMedia('(prefers-reduced-motion: reduce)').matches?0:340)}}
+}
+$('#quickBtn').onclick=()=>{$('#quickCard').hidden=!$('#quickCard').hidden};
+$('#quickCancel').onclick=()=>{$('#quickCard').hidden=true};
+$('#quickSrc').onchange=e=>{const v=e.target.value;$('#quickFn').innerHTML=`<b>writes</b> daily/2026/11/2026-11-19/${v}.md${v==='quick'?'':' (mode: quick)'} · .journal/index.json · .journal/recall.json`};
+$('#quickSave').onclick=()=>{const v=$('#quickSrc').value;toast('quick: 2026-11-19',[`daily/2026/11/2026-11-19/${v}.md`,'.journal/index.json','.journal/recall.json']);$('#quickCard').hidden=true};
+$('#contBtn').onclick=()=>{go('log');pickSrc('pm')};
+
+/* log composer */
+const RECENT=['pm','st','ck','ll'];let curSrc='pm';
+function pickSrc(k){curSrc=k;renderStrip();const s=S[k];if(!s)return;$('#progCard').className='card t-'+s.type;$('#progSrc').textContent=s.title+(s.pages?' · '+s.pages+' pp':'');
+ $('#newSrc').hidden=true;$$('#ideaCards .card').forEach(c=>c.className='card t-'+s.type)}
+function renderStrip(){$('#srcStrip').innerHTML=RECENT.map(k=>{const s=S[k];return `<button class="card srccard t-${s.type}${k===curSrc?' on':''}" data-src="${k}"><div class="meta"><b>${s.type}</b></div><div class="tt">${esc(s.title)}</div><div class="sub mono muted" style="font-size:11px">${s.page?'p. '+s.page:s.prog||s.last}</div></button>`}).join('')+`<button class="addcard srccard" id="newSrcBtn" style="width:150px">+ New source</button>`;
+ $$('#srcStrip [data-src]').forEach(b=>b.onclick=()=>pickSrc(b.dataset.src));$('#newSrcBtn').onclick=()=>{curSrc=null;renderStrip();$('#newSrc').hidden=false}}
+$('#newSrcX').onclick=()=>pickSrc('pm');
+$('#typeChips').innerHTML=['book','article','podcast','video','course','conversation'].map((t,i)=>`<button class="chip${i===0?' on':''}" data-t="${t}">${t}</button>`).join('');
+$$('#typeChips .chip').forEach(c=>c.onclick=()=>{$$('#typeChips .chip').forEach(x=>x.classList.toggle('on',x===c));upNs()});
+function slug(s){return s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,40)||'new-source'}
+function upNs(){const t=$('#typeChips .on').dataset.t;const sl=slug($('#nsTitle').value||'notes on craft');const dir={book:'books',course:'courses'}[t];
+ $('#newSrc .fn').innerHTML='<b>creates</b> sources/'+(dir?dir+'/':t+'s/2026/')+sl+'.md'}
+$('#nsTitle').oninput=upNs;
+let unit='page';
+$$('#unitSeg button').forEach(b=>b.onclick=()=>{unit=b.dataset.u;$$('#unitSeg button').forEach(x=>x.classList.toggle('on',x===b));
+ const L={page:['From page','To page'],chapter:['From chapter','To chapter'],pct:['From %','To %']}[unit];
+ $('label[for=pFrom]').textContent=L[0];$('label[for=pTo]').textContent=L[1];
+ if(unit==='pct'){$('#pFrom').value='46';$('#pTo').value='54'}else if(unit==='chapter'){$('#pFrom').value='6';$('#pTo').value='7'}else{$('#pFrom').value='142';$('#pTo').value='168'}upProg()});
+function upProg(){const a=+$('#pFrom').value,b=+$('#pTo').value;
+ $('#progOut').textContent=unit==='page'?`${Math.max(0,b-a)} pages · now ${Math.round(b/312*100)}% of the book`:unit==='pct'?`now ${b}% · about p. ${Math.round(b*3.12)}`:`chapters ${a}–${b}`}
+['#pFrom','#pTo'].forEach(s=>$(s).oninput=upProg);
+let ideas=['Rituals work because they remove the decision to start, not because they motivate.',''];
+function renderIdeas(){const t=S[curSrc]?.type||'book';
+ $('#ideaCards').innerHTML=ideas.map((v,i)=>`<div class="card t-${t}"><div class="meta"><b>Idea ${i+1} of ${ideas.length}</b><span>${esc(S[curSrc]?.title||'New source')}</span><span>id assigned on save</span></div>${ideas.length>1?`<button class="x" data-rm="${i}" aria-label="Remove">×</button>`:''}<textarea data-i="${i}" class="idea" style="margin-top:8px;border-style:dashed;min-height:84px" placeholder="Say it in your own words, as if to a friend">${esc(v)}</textarea></div>`).join('');
+ $$('#ideaCards textarea').forEach(a=>a.oninput=()=>{ideas[a.dataset.i]=a.value;count()});
+ $$('#ideaCards [data-rm]').forEach(b=>b.onclick=()=>{ideas.splice(+b.dataset.rm,1);renderIdeas()});
+ $('#addIdea').hidden=ideas.length>=3;count()}
+$('#addIdea').onclick=()=>{if(ideas.length<3){ideas.push('');renderIdeas()}};
+$('#addQuote').onclick=()=>{$('#quoteCard').hidden=false;$('#addQuote').hidden=true;count()};
+const WHEN=[['Tomorrow','Fri 20 Nov'],['This weekend','Sat 21 Nov'],['Next week','Fri 27 Nov'],['Pick a date',''],["Don't ask",'']];
+$('#whenChips').innerHTML=WHEN.map((w,i)=>`<button class="chip${i===0?' on':''}" data-w="${i}">${w[0]}</button>`).join('');
+$$('#whenChips .chip').forEach(c=>c.onclick=()=>{$$('#whenChips .chip').forEach(x=>x.classList.toggle('on',x===c));const w=WHEN[+c.dataset.w];
+ $('#whenDate').hidden=w[0]!=='Pick a date';$('#whenOut').textContent=w[0]==="Don't ask"?'No follow-up':w[1]?'Follow-up on '+w[1]:'Follow-up on the date you pick'});
+const linked=new Set(['k7f2']);
+$('#linkStrip').innerHTML=['k7f2','m3c9','c1x0','r5n1'].map(id=>{const x=idea(id);return `<button class="card mini t-${typeOf(x)}${linked.has(id)?' on':''}" data-l="${id}"><div class="meta"><b>${esc(srcName(x))}</b><span>${x.d}</span></div><div style="margin-top:4px">${esc(x.t)}</div></button>`}).join('');
+$$('#linkStrip [data-l]').forEach(b=>b.onclick=()=>{const id=b.dataset.l;linked.has(id)?linked.delete(id):linked.add(id);b.classList.toggle('on')});
+$('#linkChips').innerHTML=['Why Checklists Beat Willpower','#focus','#habits','#rituals','+ topic'].map((t,i)=>`<button class="chip${i<2?' on':''}">${t}</button>`).join('');
+$$('#linkChips .chip').forEach(c=>c.onclick=()=>c.classList.toggle('on'));
+function count(){const n=ideas.filter(v=>v.trim()).length+(!$('#quoteCard').hidden?1:0)+1+($('#qQ').value.trim()?1:0);$('#cardCount').textContent=n}
+$('#qQ').oninput=count;
+$('#saveFull').onclick=()=>{const s=S[curSrc]||{title:$('#nsTitle').value||'Notes on Craft',path:'books/'+slug($('#nsTitle').value||'notes on craft')};const sl=s.path.split('/').pop();
+ toast(`learning: ${s.title} · 2026-11-19`,[`daily/2026/11/2026-11-19/${sl}.md`,`sources/${s.path}.md`,'.journal/index.json · .journal/recall.json','.journal/followups.json · followups.md'])};
+$$('[data-mode]').forEach(b=>b.onclick=()=>{$$('[data-mode]').forEach(x=>x.classList.toggle('on',x===b));$('#logFull').hidden=b.dataset.mode!=='full';$('#logQuick').hidden=b.dataset.mode==='full'});
+$('#lqSave').onclick=()=>{const v=$('#lqSrc').value;toast('quick: 2026-11-19',[`daily/2026/11/2026-11-19/${v}.md`,'.journal/index.json','.journal/recall.json'])};
+
+/* library */
+let fStatus='all',fType='all';
+const STAT=[['all','All'],['reading','Reading'],['want','Want'],['finished','Finished'],['abandoned','Abandoned']];
+function hue(s){let h=0;for(const c of s)h=(h*31+c.charCodeAt(0))%360;return h}
+function tile(k){const s=S[k];return `<button class="tile" data-src="${k}"><div class="cover${s.status==='abandoned'?' dim':''}" style="--h:${hue(s.title)}"><span class="ty">${s.type}</span><span class="tt">${esc(s.title)}</span><span class="au">${esc(s.author)}</span></div>
+ ${s.status==='want'?'<div class="sub" style="margin-top:8px">Want to read</div>':`<div class="bar"><i style="width:${s.pct||0}%"></i></div><div class="sub">${s.status==='finished'&&s.rating?'★'.repeat(s.rating)+' · ':''}${s.page&&s.status!=='finished'?'p. '+s.page+' · ':''}${s.prog?s.prog+' · ':''}${s.entries} ${s.entries===1?"entry":"entries"} · ${s.last}</div>`}</button>`}
+function renderShelf(){
+ $('#statusChips').innerHTML=STAT.map(([k,l])=>`<button class="chip${fStatus===k?' on':''}" data-st="${k}">${l}</button>`).join('');
+ $('#typeFilter').innerHTML=['all','book','article','podcast','video','course','conversation'].map(t=>`<button class="chip${fType===t?' on':''}" data-ty="${t}" style="font-size:12px;padding:3px 10px">${t==='all'?'All types':t}</button>`).join('');
+ $$('[data-st]').forEach(b=>b.onclick=()=>{fStatus=b.dataset.st;renderShelf()});$$('[data-ty]').forEach(b=>b.onclick=()=>{fType=b.dataset.ty;renderShelf()});
+ let h='';for(const [k,l] of STAT.slice(1)){if(fStatus!=='all'&&fStatus!==k)continue;const ks=Object.keys(S).filter(x=>S[x].status===k&&(fType==='all'||S[x].type===fType));if(!ks.length)continue;
+  h+=`<div class="shelf-h"><h2>${l}</h2><span class="mono muted" style="font-size:12px">${ks.length}</span></div><div class="shelf">${ks.map(tile).join('')}</div>`}
+ $('#shelf').innerHTML=h||'<p class="muted" style="margin-top:20px">Nothing on this shelf yet.</p>';
+ $$('#shelf [data-src]').forEach(b=>b.onclick=()=>openSrc(b.dataset.src))}
+function openSrc(k){const s=S[k];const ids=I.filter(x=>x.s===k);$('#libList').hidden=true;const d=$('#libDetail');d.hidden=false;
+ d.innerHTML=`<button class="btn ghost sm" id="back">← Shelf</button>
+ <div class="detail-top" style="margin-top:14px"><div class="cover${s.status==='abandoned'?' dim':''}" style="--h:${hue(s.title)}"><span class="ty">${s.type}</span><span class="tt">${esc(s.title)}</span><span class="au">${esc(s.author)}</span></div>
+ <div class="stack" style="gap:8px"><div class="eyebrow">${s.type} · ${s.status}</div><h1>${esc(s.title)}</h1><div class="muted">${esc(s.author)}${s.topics?' · '+s.topics.map(t=>'#'+t).join(' '):''}</div>
+ ${s.pct!=null?`<div class="bar" style="max-width:320px"><i style="width:${s.pct}%"></i></div><div class="mono muted" style="font-size:12px">${s.page?'p. '+s.page+(s.pages?' of '+s.pages:'')+' · ':''}${s.prog?s.prog+' · ':''}${s.pct}%</div>`:''}
+ ${s.rating?`<div style="color:var(--warn);font-size:18px">${'★'.repeat(s.rating)}<span style="color:var(--line)">${'★'.repeat(5-s.rating)}</span></div>`:''}
+ <div class="row">${s.status==='reading'?'<button class="btn primary sm" id="finBtn">Finish</button><button class="btn sm" data-go="log">Log</button><button class="btn ghost sm" id="abBtn">Abandon</button>':''}${s.status==='want'?'<button class="btn primary sm" id="startBtn">Start reading</button>':''}</div>
+ <div class="fn">sources/${s.path}.md</div></div></div>
+ <div class="card t-${s.type}" id="abForm" hidden style="margin-top:16px;max-width:560px"><div class="meta"><b>Abandon</b></div><label class="l" for="abWhy">What I got anyway</label><input id="abWhy" placeholder="One line"><div class="row" style="margin-top:10px"><button class="btn sm" id="abSave">Mark abandoned</button></div></div>
+ <div id="finForm" hidden></div>
+ ${s.takeaway?`<div class="card t-${s.type}" style="margin-top:18px;max-width:720px"><div class="meta"><b>What I took from this</b><span>finished ${s.last}</span></div><p style="margin:8px 0 0;font-size:16px">${esc(s.takeaway)}</p></div>`:''}
+ ${s.why?`<div class="card t-${s.type}" style="margin-top:18px;max-width:720px"><div class="meta"><b>Abandoned at p. ${s.page}</b></div><p style="margin:8px 0 0">${esc(s.why)}</p></div>`:''}
+ <div class="shelf-h"><h2>Cards</h2><span class="mono muted" style="font-size:12px">${ids.length} ideas</span></div>
+ <div class="cards">${ids.map(x=>ideaCard(x)).join('')}${k==='pm'?quoteCard(QUOTE)+questionCard(QUESTION)+`<article class="card t-action"><div class="meta"><b>Action</b><span>due today</span></div><div style="margin-top:6px">Phone in another room for the first hour of work, Mon–Wed</div><div class="muted" style="font-size:13px;margin-top:4px">Asked on Thu 19 Nov · open</div></article>`:''}${!ids.length?'<p class="muted">No cards yet. Log your first session and they appear here.</p>':''}</div>
+ ${k==='pm'?`<div class="shelf-h"><h2>Entries</h2><span class="mono muted" style="font-size:12px">6</span></div><div class="timeline"><div><b>18 Nov</b> · pp. 120–142 · Ch. 6 · 2 ideas, 1 quote</div><div><b>16 Nov</b> · pp. 101–120 · 2 ideas</div><div><b>12 Nov</b> · pp. 88–101 · 1 idea</div><div><b>9 Nov</b> · pp. 60–88 · quick</div><div><b>5 Nov</b> · pp. 30–60 · 2 ideas</div><div><b>2 Nov</b> · pp. 1–30 · started</div></div>`:''}`;
+ $('#back').onclick=()=>{d.hidden=true;$('#libList').hidden=false};
+ if($('#abBtn')){$('#abBtn').onclick=()=>{$('#abForm').hidden=false};$('#abSave').onclick=()=>toast('abandoned: '+s.title,['sources/'+s.path+'.md','.journal/index.json'])}
+ if($('#startBtn'))$('#startBtn').onclick=()=>toast('reading: '+s.title,['sources/'+s.path+'.md']);
+ if($('#finBtn'))$('#finBtn').onclick=()=>finish(k);window.scrollTo(0,0)}
+function finish(k){const s=S[k];const f=$('#finForm');f.hidden=false;let rating=0;const top=new Set();
+ f.innerHTML=`<div class="card t-${s.type}" style="margin-top:16px;max-width:760px"><div class="meta"><b>Finish ${esc(s.title)}</b></div>
+ <label class="l">Rating</label><div class="stars" id="stars">${[1,2,3,4,5].map(n=>`<button data-n="${n}" aria-label="${n} stars">★</button>`).join('')}</div>
+ <label class="l" for="takeaway">What I took from this</label><textarea id="takeaway" style="min-height:100px" placeholder="One paragraph, for future you"></textarea>
+ <label class="l">Top ideas <span id="topN">(0 of 3)</span></label><div class="cards" id="topPick">${I.filter(x=>x.s===k).map(x=>ideaCard(x,'<button class="star" aria-label="Pick">★</button>')).join('')}</div>
+ <label class="l" for="recTo">Recommend to</label><input id="recTo" placeholder="Anyone who works in an open office">
+ <div class="row" style="margin-top:12px"><button class="btn primary" id="finSave">Save as finished</button></div>
+ <div class="fn"><b>commit</b> finished: ${esc(s.title)} · sources/${s.path}.md (status, finished, rating, What I took from this, Top ideas, Recommend to) · .journal/index.json</div></div>`;
+ $$('#stars button').forEach(b=>b.onclick=()=>{rating=+b.dataset.n;$$('#stars button').forEach(x=>x.classList.toggle('on',+x.dataset.n<=rating))});
+ $$('#topPick .card').forEach(c=>c.querySelector('.star').onclick=()=>{const id=c.dataset.idea;if(top.has(id))top.delete(id);else if(top.size<3)top.add(id);c.classList.toggle('starred',top.has(id));$('#topN').textContent=`(${top.size} of 3)`});
+ $('#finSave').onclick=()=>toast('finished: '+s.title,['sources/'+s.path+'.md','.journal/index.json']);f.scrollIntoView({behavior:'smooth',block:'start'})}
+$('#wantBtn').onclick=()=>{$('#wantForm').hidden=!$('#wantForm').hidden};
+$('#wSave').onclick=()=>{const t=$('#wTitle').value.trim()||'The Quiet Engine';const a=$('#wAuth').value.trim()||'Unknown author';const k='w'+Date.now();
+ S[k]={type:'book',title:t,author:a,status:'want',path:'books/'+slug(t),entries:0};toast('want: '+t,['sources/books/'+slug(t)+'.md','.journal/index.json']);$('#wantForm').hidden=true;$('#wTitle').value='';$('#wAuth').value='';renderShelf()};
+
+/* review */
+function reviewTab(t){$$('[data-rt]').forEach(b=>b.classList.toggle('on',b.dataset.rt===t));$('#recall').hidden=t!=='recall';$('#weekly').hidden=t!=='weekly'}
+$$('[data-rt]').forEach(b=>b.onclick=()=>reviewTab(b.dataset.rt));
+let ri=0;const results=[];
+function nextLabel(step,a){if(a==='remembered')return step>=4?'retired as learned':'next in '+LADL[step+1];if(a==='fuzzy')return 'again in '+LADL[step];return 'back to 1 day'}
+function targetStep(step,a){return a==='remembered'?Math.min(step+1,5):a==='fuzzy'?step:0}
+function renderRecall(){const el=$('#recall');
+ if(ri>=RECALL.length){const rem=results.filter(r=>r.a==='remembered').length;
+  el.innerHTML=`<div class="card t-q" style="max-width:560px"><div class="meta"><b>Session done</b><span>${results.length} cards</span></div><h2 style="margin-top:8px">${rem} remembered, ${results.length-rem} to see again sooner</h2>
+  <div class="stack" style="gap:6px;margin-top:10px;font-size:14px">${results.map(r=>`<div><b>${r.a==='retired'?'Retired':r.a[0].toUpperCase()+r.a.slice(1)}</b> · ${esc(idea(r.id).t.slice(0,48))}… <span class="muted">· ${r.next}</span></div>`).join('')}</div>
+  <div class="row" style="margin-top:14px"><button class="btn primary" id="recSave">Save session</button><button class="btn ghost" id="recAgain">Start over</button></div>
+  <div class="fn"><b>commit</b> recall: ${results.length} ideas · 2026-11-19<br>reviews/recall/2026/2026-11.md · .journal/recall.json</div></div>`;
+  $('#recSave').onclick=()=>toast(`recall: ${results.length} ideas · 2026-11-19`,['reviews/recall/2026/2026-11.md','.journal/recall.json']);
+  $('#recAgain').onclick=()=>{ri=0;results.length=0;renderRecall()};return}
+ const r=RECALL[ri],x=idea(r.id),s=S[x.s];let ans=null;
+ el.innerHTML=`<div class="row" style="justify-content:space-between;max-width:560px;margin-bottom:12px"><div class="dots">${RECALL.map((_,i)=>`<i class="${i<ri?'done':i===ri?'cur':''}"></i>`).join('')}</div><span class="mono muted" style="font-size:12px">${ri+1} of 4 · +2 waiting tomorrow</span></div>
+ <div class="flip" id="flip"><div class="flip-in">
+  <div class="face card t-${s.type}"><div class="meta"><b>${s.type}</b><span>${esc(s.title)}</span><span>${x.d}</span></div>
+   <div class="eyebrow" style="margin-top:18px">Hint</div><div style="font-size:15px">${esc(r.hint)}</div>
+   <h2 style="margin-top:18px">What was the idea?</h2>
+   <textarea id="attempt" style="margin-top:10px;min-height:64px" placeholder="Try to recall it first (optional)"></textarea>
+   <div style="margin-top:auto;padding-top:12px"><button class="btn primary wide" id="reveal">Reveal</button></div></div>
+  <div class="face back card t-${s.type}"><div class="meta"><b>${s.type}</b><span>${esc(s.title)}</span><span>${x.d}</span><span>id:${x.id}</span></div>
+   <div class="idea" style="font-size:19px;line-height:30px;background-size:100% 30px;background-image:repeating-linear-gradient(to bottom,transparent 0 29px,var(--rule) 29px 30px)">${esc(x.t)}</div>
+   <div class="row" style="margin-top:auto">${x.tp.map(t=>`<span class="tag">#${t}</span>`).join('')}</div>
+   <div class="muted" style="font-size:13px;margin-top:8px">${esc(r.seen)}</div></div>
+ </div></div>
+ <div id="after" hidden>
+  <div class="ladder" id="ladder">${LAD.map((l,i)=>`<span class="${i===r.step?'cur':''}">${l}</span>`).join('')}<span>done</span></div>
+  <div class="ans">${[['remembered','Remembered'],['fuzzy','Fuzzy'],['forgot','Forgot']].map(([k,l])=>`<button data-ans="${k}">${l}<small>${nextLabel(r.step,k)}</small></button>`).join('')}</div>
+  <div style="max-width:560px"><label class="l" for="meaning">What does it mean to me now?</label><textarea id="meaning" style="min-height:60px" placeholder="Optional, one line"></textarea>
+  <div class="row" style="margin-top:10px;justify-content:space-between"><button class="btn primary" id="nextCard" disabled>Next card →</button><button class="btn ghost sm" id="retire">Retire · not worth keeping</button></div>
+  <div class="fn">saved with the session: reviews/recall/2026/2026-11.md · .journal/recall.json</div></div>
+ </div>`;
+ $('#reveal').onclick=()=>{$('#flip').classList.add('flipped');$('#after').hidden=false};
+ $$('[data-ans]').forEach(b=>b.onclick=()=>{ans=b.dataset.ans;$$('[data-ans]').forEach(x=>x.classList.toggle('on',x===b));const t=targetStep(r.step,ans);
+  $$('#ladder span').forEach((sp,i)=>sp.classList.toggle('to',i===t));$('#nextCard').disabled=false});
+ $('#nextCard').onclick=()=>{results.push({id:x.id,a:ans,next:nextLabel(r.step,ans)});ri++;renderRecall()};
+ $('#retire').onclick=()=>{results.push({id:x.id,a:'retired',next:'not worth keeping'});ri++;renderRecall()}}
+
+const WQ=['Which idea this week changed what you do, not just what you know?','What did you read that you disagree with, and why?','Which two sources said the same thing in different words?','What would you explain to a friend over dinner from this week?'];
+let wq=0;const weekTop=new Set();
+function renderWeekly(){const wk=['k7f2','p2d8','e1','e6','c1x0','e3','e7','s4m2','e4'].map(idea);
+ $('#weekly').innerHTML=`<div class="eyebrow">2026-W47 · 16–22 Nov</div><h2 style="margin:4px 0 12px">Your week in cards</h2>
+ <div class="stats"><div class="stat"><strong>5</strong><span>days</span></div><div class="stat"><strong>4</strong><span>sources</span></div><div class="stat"><strong>74</strong><span>pages</span></div><div class="stat"><strong>9</strong><span>ideas</span></div><div class="stat"><strong>8/11</strong><span>remembered</span></div><div class="stat"><strong>2</strong><span>applied</span></div></div>
+ <div class="row" style="justify-content:space-between"><h3>1 · Star your top 3</h3><span class="mono muted" id="wTopN" style="font-size:12px">${weekTop.size} of 3</span></div>
+ <div class="cards" id="weekGrid" style="margin-top:10px">${wk.map(x=>ideaCard(x,'<button class="star" aria-label="Star">★</button>')).join('')}</div>
+ <div class="grid2" style="margin-top:22px">
+  <div class="stack">
+   <div class="card t-action"><div class="meta"><b>2 · What I applied</b><span>closed this week</span></div>
+    <div class="stack" style="gap:6px;margin-top:8px;font-size:14px"><div><b style="color:var(--ok)">✓ Done</b> · Turned off badge counts for chat · 17 Nov</div><div><b style="color:var(--warn)">◐ Partly</b> · Pre-flight checklist for Friday releases · 18 Nov</div></div>
+    <textarea style="margin-top:10px;min-height:56px" placeholder="Anything else you put into practice?"></textarea></div>
+   <div class="card t-book"><div class="meta"><b>3 · What to read next</b><span>from Want</span></div>
+    <div class="row" style="margin-top:10px" id="nextPick"><button class="chip on">Notes on Craft · Ruth Abara</button><button class="chip" data-go="library">+ add to reading list</button></div></div>
+  </div>
+  <div class="stack">
+   <div class="card t-q"><div class="meta"><b>4 · Deeper question</b><span>rotates weekly</span></div>
+    <div class="row" style="margin-top:8px;align-items:flex-start;flex-wrap:nowrap"><h3 id="wq" style="flex:1;min-width:0">${esc(WQ[wq])}</h3><button class="btn ghost sm" id="wqNext" aria-label="Another question" title="Another question">↻</button></div>
+    <textarea style="margin-top:10px;min-height:80px" placeholder="Your answer"></textarea></div>
+   <div class="card t-action"><div class="meta"><b>5 · Next week I'll try</b><span>becomes a follow-up</span></div>
+    <input style="margin-top:10px" value="Ask for a 5-minute pre-mortem in Tuesday planning"><div class="mono muted" style="font-size:12px;margin-top:6px">Ask me on Fri 27 Nov</div></div>
+  </div>
+ </div>
+ <div class="savebar"><button class="btn primary wide" id="wSaveRev">Save weekly review</button></div>
+  <div class="fn"><b>commit</b> weekly review: 2026-W47 · reviews/weekly/2026/2026-W47.md · .journal/followups.json · followups.md</div>`;
+ $$('#weekGrid .card').forEach(c=>{c.classList.toggle('starred',weekTop.has(c.dataset.idea));c.querySelector('.star').onclick=()=>{const id=c.dataset.idea;if(weekTop.has(id))weekTop.delete(id);else if(weekTop.size<3)weekTop.add(id);c.classList.toggle('starred',weekTop.has(id));$('#wTopN').textContent=weekTop.size+' of 3'}});
+ $('#wqNext').onclick=()=>{wq=(wq+1)%WQ.length;$('#wq').textContent=WQ[wq]};
+ $$('#nextPick .chip:not([data-go])').forEach(c=>c.onclick=()=>c.classList.toggle('on'));
+ $('#wSaveRev').onclick=()=>toast('weekly review: 2026-W47',['reviews/weekly/2026/2026-W47.md','.journal/followups.json','followups.md'])}
+
+/* history */
+const DAYS={10:['j6w1'],12:['m3c9'],13:['b8t3'],15:['r5n1'],16:['s4m2','e1','e6'],17:['c1x0','e3','e7'],18:['k7f2','p2d8','Q'],19:['e4']};
+const ENTRY=new Set([1,2,3,5,6,8,9,10,11,12,13,14,15,16,17,18,19]),QUICK=new Set([9,14,19]);
+function renderHeat(){let h='';const start=new Date(2026,7,31);for(let i=0;i<84;i++){const d=new Date(start);d.setDate(start.getDate()+i);const fut=d>new Date(2026,10,19);
+ const n=d.getDate()+d.getMonth()*7;let lvl=fut?'f':(n*7%5===0?'':'l'+(1+n%3));if(!fut&&d>=new Date(2026,10,8))lvl='l'+(1+(n%3));
+ h+=`<i class="${lvl}" title="${d.toDateString()}"></i>`}$('#heat').innerHTML=h}
+let sel=18;
+function renderCal(){let h=['M','T','W','T','F','S','S'].map(x=>`<div class="dow">${x}</div>`).join('')+'<div></div>'.repeat(6);
+ for(let d=1;d<=30;d++){const has=ENTRY.has(d);h+=`<button data-d="${d}" class="${d===19?'today ':''}${d===sel?'sel':''}" ${d>19?'disabled':''}>${d}${has?`<i class="${QUICK.has(d)?'ring':''}"></i>`:''}</button>`}
+ $('#cal').innerHTML=h;$$('#cal button[data-d]').forEach(b=>b.onclick=()=>{sel=+b.dataset.d;renderCal();renderDay()})}
+function renderDay(){const dt=new Date(2026,10,sel);$('#dayTitle').textContent=dt.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
+ const ids=DAYS[sel];let h='';
+ if(ids)h=ids.map(id=>id==='Q'?quoteCard(QUOTE)+questionCard(QUESTION):ideaCard(idea(id))).join('');
+ else if(ENTRY.has(sel))h=`<div class="card"><div class="meta"><span>Sample day</span></div><p class="muted" style="margin:6px 0 0">${QUICK.has(sel)?'1 quick card':'2 idea cards'} (details not in this prototype)</p></div>`;
+ else h='<p class="muted">Nothing logged this day.</p>';
+ $('#dayCards').innerHTML=h+(ids||ENTRY.has(sel)?`<div class="fn">daily/2026/11/2026-11-${String(sel).padStart(2,'0')}/ · tap a card to edit it in the composer · open on GitHub</div>`:'')}
+function hl(t,q){const i=t.toLowerCase().indexOf(q);return i<0?esc(t):esc(t.slice(0,i))+'<mark>'+esc(t.slice(i,i+q.length))+'</mark>'+esc(t.slice(i+q.length))}
+$('#search').oninput=e=>{const q=e.target.value.trim().toLowerCase().replace(/^#/,'');const out=$('#results');$('#histBody').hidden=!!q;if(!q){out.innerHTML='';return}
+ const hits=[];
+ for(const x of I){const hay=[x.t,srcName(x),x.s?S[x.s].author:'',...x.tp].join(' ').toLowerCase();if(hay.includes(q))hits.push(`<article class="card t-${typeOf(x)}"><div class="meta"><b>Idea</b><span>${hl(srcName(x),q)}</span><span>${x.d}</span></div><div class="idea">${hl(x.t,q)}</div><div class="row">${x.tp.map(t=>`<span class="tag">${hl('#'+t,q)}</span>`).join('')}</div></article>`)}
+ if((QUOTE.t+' quote').toLowerCase().includes(q))hits.push(quoteCard(QUOTE).replace(esc(QUOTE.t),hl(QUOTE.t,q)));
+ if(QUESTION.t.toLowerCase().includes(q)||'question'.includes(q))hits.push(questionCard(QUESTION).replace(esc(QUESTION.t),hl(QUESTION.t,q)));
+ for(const k in S){const s=S[k];if((s.title+' '+s.author).toLowerCase().includes(q))hits.push(`<article class="card t-${s.type}"><div class="meta"><b>Source</b><span>${s.type}</span><span>${s.status}</span></div><h3 style="margin-top:6px">${hl(s.title,q)}</h3><div class="muted" style="font-size:13px">${hl(s.author,q)} · ${s.entries} entries</div></article>`)}
+ out.innerHTML=`<div class="eyebrow" style="grid-column:1/-1">${hits.length} result${hits.length===1?'':'s'} for “${esc(q)}”</div>`+(hits.join('')||'<p class="muted">No cards match. Try a topic like #focus.</p>')};
+
+renderDeck();renderStrip();renderIdeas();renderShelf();renderRecall();renderWeekly();renderHeat();renderCal();renderDay();upProg();
+go(location.hash.slice(1)||'today');
+</script>
+</body>
+</html>

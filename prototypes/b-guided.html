@@ -1,0 +1,628 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Prototype B · Guided capture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,750&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a phone frame with side notes on wide screens; at ≤440px the frame drops away and the app fills the screen. */
+:root{
+  --bg:#e7ece9;--paper:#f7f9f7;--card:#ffffff;--ink:#15201d;--mute:#5a6964;--line:#cdd7d3;--soft:#e4ebe8;
+  --accent:#0d6a5b;--accent-ink:#ffffff;--accent-soft:#d7ebe5;
+  --note-bg:#ecf0fb;--note-line:#a9b5e3;--note-ink:#2f3c78;
+  --bar:#15201d;--bar-ink:#d9e3df;--bar-mute:#8fa19a;--bar-line:#3a4844;
+  --ok:#2a7a4c;--ok-soft:#dcefe3;--fuzzy:#8f5f00;--fuzzy-soft:#f6ebd2;--forgot:#a63c39;--forgot-soft:#f6dedd;
+  --shadow:rgba(21,32,29,.10);
+  --f-display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;
+  --f-body:"Figtree",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0c1210;--paper:#131b18;--card:#1b2622;--ink:#e6eeeb;--mute:#97a8a1;--line:#2e3c37;--soft:#22302b;
+  --accent:#55bfa9;--accent-ink:#06211c;--accent-soft:#1e3b34;
+  --note-bg:#1d2338;--note-line:#46528a;--note-ink:#bcc6f0;
+  --bar:#070b0a;--bar-ink:#d9e3df;--bar-mute:#7f918a;--bar-line:#2b3733;
+  --ok:#6fcf97;--ok-soft:#1d3528;--fuzzy:#e2b45a;--fuzzy-soft:#3a2f17;--forgot:#f08a85;--forgot-soft:#3d2120;
+  --shadow:rgba(0,0,0,.4);color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0c1210;--paper:#131b18;--card:#1b2622;--ink:#e6eeeb;--mute:#97a8a1;--line:#2e3c37;--soft:#22302b;
+  --accent:#55bfa9;--accent-ink:#06211c;--accent-soft:#1e3b34;
+  --note-bg:#1d2338;--note-line:#46528a;--note-ink:#bcc6f0;
+  --bar:#070b0a;--bar-ink:#d9e3df;--bar-mute:#7f918a;--bar-line:#2b3733;
+  --ok:#6fcf97;--ok-soft:#1d3528;--fuzzy:#e2b45a;--fuzzy-soft:#3a2f17;--forgot:#f08a85;--forgot-soft:#3d2120;
+  --shadow:rgba(0,0,0,.4);color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0}
+[hidden]{display:none!important}
+body{font:15px/1.5 var(--f-body);background:var(--bg);color:var(--ink);-webkit-text-size-adjust:100%}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:60;background:var(--bar)}
+button,input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* prototype bar */
+.proto{position:sticky;top:env(safe-area-inset-top,0px);z-index:50;background:var(--bar);color:var(--bar-ink);font:12px/1.2 var(--f-mono);
+  padding:8px max(16px,env(safe-area-inset-right,0px)) 8px max(16px,env(safe-area-inset-left,0px));display:flex;gap:10px;align-items:center}
+.proto a{color:var(--bar-mute);text-decoration:none;white-space:nowrap}
+.proto .name{color:var(--bar-ink);font-weight:600;white-space:nowrap}
+.proto .tabs{display:flex;gap:6px;overflow-x:auto;flex:1;min-width:0;scrollbar-width:none;padding:2px}
+.proto .tabs::-webkit-scrollbar{display:none}
+.proto button{background:transparent;color:var(--bar-ink);border:1px solid var(--bar-line);border-radius:999px;padding:6px 11px;cursor:pointer;white-space:nowrap;font:inherit}
+.proto button.on{background:var(--bar-ink);color:var(--bar);border-color:var(--bar-ink)}
+.proto .opts{display:flex;gap:6px}
+@media (max-width:700px){.proto{flex-wrap:wrap}.proto .tabs{order:3;flex-basis:100%}.proto .opts{margin-left:auto}}
+@media (max-width:480px){.proto .long{display:none}}
+
+/* stage */
+.stage{display:flex;gap:36px;justify-content:center;align-items:flex-start;padding-block:28px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.phone{width:392px;max-width:100%;height:800px;background:var(--card);border:2px solid var(--ink);border-radius:42px;padding:12px;box-shadow:0 14px 40px var(--shadow);flex-shrink:0}
+.phone-in{height:100%;border-radius:30px;background:var(--paper);overflow:hidden;display:flex;flex-direction:column;position:relative}
+.status{display:flex;justify-content:space-between;padding:10px 24px 2px;font:600 12px var(--f-mono);color:var(--mute)}
+#app{flex:1;overflow:auto;display:flex;flex-direction:column;min-height:0}
+.side{width:300px;min-width:0;position:sticky;top:80px}
+.side h3{font:700 13px var(--f-mono);text-transform:uppercase;letter-spacing:.08em;color:var(--mute);margin:0 0 8px}
+.side p{margin:0 0 12px;font-size:14px;color:var(--ink)}
+@media (max-width:820px){.side{display:none}}
+@media (max-width:440px){
+  .stage{padding:0;display:block}
+  .phone{width:100%;height:auto;min-height:calc(100dvh - 96px);border:none;border-radius:0;padding:0;box-shadow:none}
+  .phone-in{border-radius:0;overflow:visible;min-height:calc(100dvh - 96px)}
+  .status{display:none}
+  #app{overflow:visible}
+}
+
+/* shared app pieces */
+.pad{padding:8px 20px 20px;display:flex;flex-direction:column;gap:12px;flex:1}
+.hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 20px 4px}
+.hdr h1{font:750 26px/1.1 var(--f-display);letter-spacing:-.02em;margin:0}
+.date{font:600 12px var(--f-mono);color:var(--mute);text-transform:uppercase;letter-spacing:.08em}
+.q{font:750 27px/1.15 var(--f-display);letter-spacing:-.02em;margin:4px 0 6px;text-wrap:balance}
+.kicker{font:600 11.5px var(--f-mono);text-transform:uppercase;letter-spacing:.09em;color:var(--mute)}
+.muted{color:var(--mute)}
+.sub{color:var(--mute);font-size:14px;margin:0}
+.card{background:var(--card);border:1.5px solid var(--line);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.card.hi{border-color:var(--accent)}
+.card h2{font:700 17px/1.25 var(--f-body);margin:0}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1.5px solid var(--line);background:var(--card);border-radius:14px;padding:14px 16px;font-weight:650;cursor:pointer;min-height:50px;text-align:center}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.dark{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.btn.small{min-height:38px;padding:8px 12px;border-radius:11px;font-size:14px}
+.btn.link{border:none;background:none;color:var(--accent);min-height:0;padding:6px 4px;font-weight:600}
+.btn.wide{width:100%}
+.btn.continue{justify-content:space-between;text-align:left;background:var(--accent-soft);border-color:var(--accent-soft);padding:16px 18px}
+.btn.continue small{display:block;font-weight:500;color:var(--mute);font-size:13px}
+.row{display:flex;gap:10px}.row>*{flex:1}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1.5px solid var(--line);background:var(--card);border-radius:999px;padding:8px 14px;font-size:14px;cursor:pointer;min-height:40px;text-align:left}
+.chip.on{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.chip.ok.on{background:var(--ok);border-color:var(--ok);color:var(--paper)}
+label.lbl{font:600 11.5px var(--f-mono);text-transform:uppercase;letter-spacing:.08em;color:var(--mute);margin-top:4px}
+input,textarea{width:100%;border:1.5px solid var(--line);border-radius:14px;padding:13px 14px;background:var(--card);font-size:16px}
+input:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+textarea{resize:vertical;min-height:96px;line-height:1.45}
+.fnote{font:11.5px/1.5 var(--f-mono);font-variant-ligatures:none;background:var(--note-bg);border:1px dashed var(--note-line);color:var(--note-ink);border-radius:8px;padding:7px 10px;word-break:break-word}
+.fnote b{font-weight:600}
+body.nonotes .fnote,body.nonotes .side{display:none}
+.bar{height:6px;background:var(--soft);border-radius:3px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);border-radius:3px}
+.streak{display:flex;align-items:center;gap:12px}
+.streak strong{font:750 34px/1 var(--f-display)}
+.dots{display:flex;gap:5px}
+.dots span{width:24px;height:24px;border-radius:7px;background:var(--soft);font:600 10px/24px var(--f-mono);text-align:center;color:var(--mute)}
+.dots span.y{background:var(--accent);color:var(--accent-ink)}
+.dots span.t{background:transparent;border:1.5px dashed var(--accent);line-height:21px}
+.pill{display:inline-block;font:600 11px var(--f-mono);border-radius:999px;padding:3px 9px;background:var(--soft);color:var(--mute);text-transform:uppercase;letter-spacing:.06em}
+.pill.acc{background:var(--accent-soft);color:var(--accent)}
+
+/* tab bar */
+.tabbar{display:flex;border-top:1.5px solid var(--line);background:var(--card);position:sticky;bottom:0;padding-bottom:env(safe-area-inset-bottom,0px);z-index:5}
+.tabbar button{flex:1;border:none;background:none;padding:10px 0 12px;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:12px;color:var(--mute);cursor:pointer;position:relative}
+.tabbar svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8}
+.tabbar button.on{color:var(--accent);font-weight:700}
+.tabbar .badge{position:absolute;top:6px;left:calc(50% + 6px);background:var(--accent);color:var(--accent-ink);font:700 10px/16px var(--f-mono);min-width:16px;height:16px;border-radius:8px;padding:0 4px}
+
+/* flow */
+.ftop{display:flex;align-items:center;gap:12px;padding:12px 20px 4px}
+.back{border:none;background:none;font-size:24px;line-height:1;cursor:pointer;padding:4px 6px;color:var(--ink)}
+.prog{flex:1;height:7px;background:var(--soft);border-radius:4px;overflow:hidden}
+.prog i{display:block;height:100%;background:var(--accent);transition:width .25s}
+.count{font:600 12px var(--f-mono);color:var(--mute);min-width:34px;text-align:right}
+.ffoot{position:sticky;bottom:0;background:var(--paper);padding:12px 20px calc(16px + env(safe-area-inset-bottom,0px));display:flex;gap:10px;border-top:1px solid var(--soft);z-index:4}
+.ffoot .btn{flex:1}
+.ffoot .btn.skip{flex:0 0 auto;min-width:90px}
+.srcpick{display:flex;flex-direction:column;gap:8px}
+.srcpick button{display:flex;justify-content:space-between;align-items:center;gap:10px;text-align:left;border:1.5px solid var(--line);background:var(--card);border-radius:14px;padding:12px 14px;cursor:pointer}
+.srcpick button.on{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.srcpick small{color:var(--mute);display:block;font-size:13px}
+.seg{display:flex;background:var(--soft);border-radius:12px;padding:4px;gap:4px}
+.seg button{flex:1;border:none;background:none;border-radius:9px;padding:9px 6px;font-weight:600;cursor:pointer;color:var(--mute)}
+.seg button.on{background:var(--card);color:var(--ink);box-shadow:0 1px 3px var(--shadow)}
+.sum{background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:12px 14px;font-size:14px}
+.sum b{display:block;font:600 11px var(--f-mono);text-transform:uppercase;letter-spacing:.08em;color:var(--mute);margin-bottom:3px}
+.done{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:10px;padding:30px 24px}
+.done .big{font:750 64px/1 var(--f-display);color:var(--accent)}
+
+/* recall */
+.rcard{background:var(--card);border:1.5px solid var(--ink);border-radius:22px;padding:20px;display:flex;flex-direction:column;gap:12px;box-shadow:0 6px 0 var(--soft)}
+.reveal{font:600 20px/1.35 var(--f-display);letter-spacing:-.01em;margin:0}
+.hidden-idea{border:1.5px dashed var(--line);border-radius:14px;padding:20px;text-align:center;color:var(--mute)}
+.grade{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.grade button{border:1.5px solid var(--line);border-radius:14px;padding:12px 4px 10px;background:var(--card);cursor:pointer;font-weight:700;display:flex;flex-direction:column;gap:2px;align-items:center}
+.grade button small{font:500 11px var(--f-mono);color:var(--mute)}
+.grade .g-ok.on{background:var(--ok-soft);border-color:var(--ok);color:var(--ok)}
+.grade .g-fz.on{background:var(--fuzzy-soft);border-color:var(--fuzzy);color:var(--fuzzy)}
+.grade .g-fg.on{background:var(--forgot-soft);border-color:var(--forgot);color:var(--forgot)}
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.tile{background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:12px 8px;text-align:center}
+.tile strong{display:block;font:750 26px/1.1 var(--f-display)}
+.tile span{font-size:12px;color:var(--mute)}
+
+/* library */
+.list{display:flex;flex-direction:column;gap:8px}
+.srow{display:flex;flex-direction:column;gap:6px;text-align:left;border:1.5px solid var(--line);background:var(--card);border-radius:16px;padding:13px 14px;cursor:pointer;width:100%}
+.srow .t{font-weight:700;font-size:15.5px;line-height:1.3}
+.srow .m{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;color:var(--mute);flex-wrap:wrap}
+.scrim{position:absolute;inset:0;background:var(--shadow);z-index:20;display:flex;align-items:flex-end}
+.sheet{background:var(--paper);width:100%;max-height:88%;overflow:auto;border-radius:24px 24px 0 0;border-top:1.5px solid var(--line);padding:8px 20px calc(20px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:12px}
+.grab{width:44px;height:5px;border-radius:3px;background:var(--line);margin:4px auto 2px}
+.tl{display:flex;flex-direction:column;gap:10px;border-left:2px solid var(--soft);margin-left:6px;padding-left:14px}
+.tl div{position:relative;font-size:14px}
+.tl div::before{content:"";position:absolute;left:-21px;top:5px;width:10px;height:10px;border-radius:50%;background:var(--accent)}
+.tl b{font:600 12px var(--f-mono);color:var(--mute);display:block}
+blockquote{margin:0;padding:10px 14px;border-left:3px solid var(--accent);background:var(--card);border-radius:0 12px 12px 0;font-style:italic}
+.stars{display:flex;gap:6px}
+.stars button{width:44px;height:44px;border-radius:12px;border:1.5px solid var(--line);background:var(--card);font-size:20px;cursor:pointer;color:var(--mute)}
+.stars button.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+@media (max-width:440px){.scrim{position:fixed}}
+
+/* history */
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
+.cal .h{font:600 11px var(--f-mono);color:var(--mute);padding:4px 0}
+.cal button{aspect-ratio:1;max-width:100%;border:none;background:none;border-radius:11px;cursor:pointer;font:600 13px var(--f-body);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--ink)}
+.cal button i{width:6px;height:6px;border-radius:50%;display:block}
+.cal button.full i{background:var(--accent)}
+.cal button.quick i{border:1.5px solid var(--accent)}
+.cal button.today{box-shadow:inset 0 0 0 1.5px var(--ink)}
+.cal button.sel{background:var(--accent-soft)}
+.cal button:disabled{color:var(--line);cursor:default}
+.hit{border:1.5px solid var(--line);background:var(--card);border-radius:14px;padding:11px 13px;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:3px;width:100%}
+.hit small{color:var(--mute);font-size:12.5px}
+mark{background:var(--accent-soft);color:var(--ink);border-radius:3px;padding:0 2px}
+
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translate(-50%,180px);background:var(--ink);color:var(--paper);padding:12px 16px;border-radius:12px;font:12.5px/1.55 var(--f-mono);transition:transform .3s;width:max-content;max-width:calc(100% - 32px);z-index:80;visibility:hidden}
+.toast.show{transform:translate(-50%,0);visibility:visible}
+</style>
+</head>
+<body>
+
+<div class="proto">
+  <a href="index.html">← <span class="long">All prototypes</span></a>
+  <span class="name">B · Guided capture</span>
+  <div class="tabs" id="ptabs">
+    <button data-go="connect">Connect</button><button data-go="today">Today</button><button data-go="log">Log</button>
+    <button data-go="library">Library</button><button data-go="review">Review</button><button data-go="history">History</button>
+  </div>
+  <div class="opts"><button id="notesBtn" aria-pressed="true">Notes on</button><button id="themeBtn">◐ auto</button></div>
+</div>
+
+<div class="stage">
+  <div class="phone"><div class="phone-in" id="phoneIn">
+    <div class="status"><span>21:40</span><span>bookjournal</span><span>87%</span></div>
+    <main id="app"></main>
+    <nav class="tabbar" id="tabbar">
+      <button data-go="today"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9H4z"/></svg>Today</button>
+      <button data-go="library"><svg viewBox="0 0 24 24"><path d="M5 4h4v16H5zM10 4h4v16h-4zM15.5 5l3.5-1 2.5 15.5-3.5 1z"/></svg>Library</button>
+      <button data-go="review"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 3-6.2M4 4v4h4"/></svg>Review<span class="badge">4</span></button>
+      <button data-go="history"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>History</button>
+    </nav>
+  </div></div>
+  <aside class="side" id="side"></aside>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const SRC={
+  pm:{id:'books/the-patient-mind',slug:'the-patient-mind',type:'book',title:'The Patient Mind',author:'Ana Ferreira',status:'reading',pages:312,page:142,pct:46,last:'18 Nov',entries:6,ideas:9,topics:['focus','habits']},
+  st:{id:'courses/intro-to-statistics',slug:'intro-to-statistics',type:'course',title:'Intro to Statistics',author:'Online course',status:'reading',prog:'Week 3 of 8',pct:38,last:'16 Nov',entries:3,ideas:5,topics:['statistics']},
+  nc:{id:'books/notes-on-craft',slug:'notes-on-craft',type:'book',title:'Notes on Craft',author:'Ruth Abara',status:'want',last:'added 17 Nov',entries:0,ideas:0,topics:['writing']},
+  lc:{id:'books/the-long-commute',slug:'the-long-commute',type:'book',title:'The Long Commute',author:'Tomas Lind',status:'finished',rating:4,last:'30 Oct',entries:11,ideas:14,topics:['cities','systems'],
+      takeaway:'Busy systems push back. Every fix that makes something easier (a wider road, a faster queue) invites more of the thing it was meant to relieve. Before I add capacity anywhere, at work or at home, I now ask what demand it will create.'},
+  fg:{id:'books/field-guide-to-clouds',slug:'field-guide-to-clouds',type:'book',title:'Field Guide to Clouds',author:'Ines Halvorsen',status:'abandoned',page:60,pages:240,last:'4 Oct',entries:2,ideas:2,topics:['weather'],reason:'Lovely photos, but I wanted the physics.'},
+  ck:{id:'articles/2026/why-checklists-beat-willpower',slug:'why-checklists-beat-willpower',type:'article',title:'Why Checklists Beat Willpower',author:'Field Notes (blog)',status:'finished',last:'17 Nov',entries:1,ideas:1,topics:['habits','work']},
+  ll:{id:'podcasts/2026/learning-loop-41-spacing',slug:'learning-loop-41-spacing',type:'podcast',title:'The Learning Loop · Ep. 41: Spacing and forgetting',author:'The Learning Loop',status:'finished',last:'15 Nov',entries:1,ideas:2,topics:['memory']},
+  br:{id:'videos/2026/how-bridges-carry-load',slug:'how-bridges-carry-load',type:'video',title:'How bridges carry load',author:'Lecture',status:'finished',last:'13 Nov',entries:1,ideas:1,topics:['engineering']},
+  jo:{id:'conversations/2026/coffee-with-jo',slug:'coffee-with-jo',type:'conversation',title:'Coffee with Jo (mentor)',author:'Conversation',status:'finished',last:'10 Nov',entries:1,ideas:1,topics:['work']},
+};
+const IDEAS={
+  k7f2:{t:'Attention is a budget: every notification spends a little, even the ones I ignore.',s:'pm',d:'18 Nov',w:'Ch. 6 The attention budget'},
+  p2d8:{t:'Deep work needs a start ritual more than it needs willpower.',s:'pm',d:'18 Nov',w:'Ch. 6 The attention budget'},
+  m3c9:{t:'Boredom is the doorway to focus, not a sign it failed.',s:'pm',d:'12 Nov',w:'Ch. 4'},
+  a9q4:{t:'New road capacity fills with new traffic within a few years.',s:'lc',d:'19 Aug',w:'Ch. 3'},
+  c1x0:{t:"A checklist is for the steps experts skip when they're confident, not the hard parts.",s:'ck',d:'17 Nov',w:'whole article'},
+  r5n1:{t:'Review when it feels slightly hard; easy reviews do little.',s:'ll',d:'15 Nov',w:'at 24 min'},
+  b8t3:{t:'Arches turn weight into sideways push, so the ends need something to lean on.',s:'br',d:'13 Nov',w:'second half'},
+  s4m2:{t:'A p-value says how surprising the data is if nothing is going on, not how likely the idea is true.',s:'st',d:'16 Nov',w:'Week 3'},
+  j6w1:{t:'Ask what would make the project fail before asking what would make it succeed.',s:'jo',d:'10 Nov',w:'over coffee'},
+};
+const QUOTE={t:'A quiet hour is built, not found.',s:'pm',page:131,d:'18 Nov'};
+const QUESTION={t:'Does the budget refill with sleep, or with short breaks during the day?',s:'pm',d:'18 Nov'};
+const RECALL=[{id:'p2d8',step:'1-day review',ok:'next in 1 week',fz:'again in 1 day'},{id:'b8t3',step:'1-week review',ok:'next in 1 month',fz:'again in 1 week'},
+  {id:'j6w1',step:'1-month review',ok:'next in 3 months',fz:'again in 1 month'},{id:'a9q4',step:'3-month review',ok:'next in 6 months',fz:'again in 3 months'}];
+const WQ=['Which idea this week changed what you do, not just what you know?','What did you read that you disagree with, and why?','Which two sources said the same thing in different words?','What would you explain to a friend over dinner from this week?'];
+const TYPES=['book','article','podcast','video','course','conversation'];
+const TYPEDIR={book:'books',article:'articles/2026',podcast:'podcasts/2026',video:'videos/2026',course:'courses',conversation:'conversations/2026'};
+const STATUS={reading:'Reading',want:'Want to read',finished:'Finished',abandoned:'Abandoned'};
+
+const S={screen:'today',notes:true,
+  fu:{choice:null,outcome:'',saved:false},
+  log:{step:0,quick:false,src:'pm',newSrc:false,ns:{type:'book',title:'',author:'',link:''},unit:'page',page:'164',chapter:'7. Starting rituals',pct:'',ideas:['',''],quote:'',qpage:'',tryText:'',when:'next-week',date:'2026-11-26',conn:['k7f2','#focus'],question:'',saved:false,quickText:''},
+  lib:{filter:'reading',type:'all',open:null,mode:'detail',rating:0,take:'',top:[],rec:'',addOpen:false,add:{title:'',author:'',type:'book'}},
+  rv:{tab:'recall',started:false,i:0,revealed:false,grade:{},now:{},retired:{},finished:false,
+      wk:{step:0,top:['k7f2','c1x0'],applied:'',next:'nc',q:0,qa:'',tryText:'',saved:false}},
+  hist:{q:'',day:18,open:null},
+};
+
+function toast(html){const t=$('#toast');t.innerHTML=html;t.classList.add('show');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('show'),4200)}
+const fnote=(what,paths)=>`<div class="fnote"><b>${what}</b><br>${paths.map(esc).join('<br>')}</div>`;
+const day='2026-11-19',dayDir='daily/2026/11/2026-11-19';
+const srcLine=k=>{const s=SRC[k];return `${esc(s.title)} · ${esc(s.author)}`};
+
+/* ---------- screens ---------- */
+function connect(){return `<div class="pad">
+  <div class="kicker" style="margin-top:12px">First run on this device</div>
+  <h1 class="q">Where should your learning journal live?</h1>
+  <p class="sub">A private GitHub repo you own. Every learning becomes a Markdown file there, one commit per save.</p>
+  <label class="lbl" for="c-repo">Repo</label><input id="c-repo" value="infinitepal178/bookjournal-data" autocapitalize="off" spellcheck="false">
+  <label class="lbl" for="c-tok">Token</label><input id="c-tok" type="password" placeholder="github_pat_…" value="github_pat_example">
+  <div class="card" style="gap:6px;font-size:14px">
+    <div>✓ Repo is private</div><div>✓ Token can write (Contents: read and write)</div><div>✓ Token stays on this device only</div>
+  </div>
+  ${fnote('First connect creates, if missing:',['README.md','.journal/config.json','.journal/index.json','.journal/recall.json'])}
+  <div style="flex:1"></div>
+  <button class="btn primary wide" data-act="connect">Connect</button></div>`}
+
+function today(){
+  const f=S.fu;
+  const fuCard=f.saved?`<div class="card"><div class="kicker">Follow-up saved</div><div><b>${{done:'Done',partly:'Partly','not-done':"Didn't",later:'Not yet',dropped:'Dropped'}[f.choice]}</b> · Phone in another room for the first hour</div></div>`:
+  `<div class="card hi"><div class="kicker">Did you try it? · due today</div>
+   <h2>Phone in another room for the first hour of work, Mon–Wed</h2>
+   <div class="sub">From The Patient Mind · 16 Nov</div>
+   <div class="chips">${[['done','Done'],['partly','Partly'],['not-done',"Didn't"],['later','Not yet'],['dropped','Drop it']].map(([k,l])=>`<button class="chip ${f.choice===k?'on':''}" data-act="fu" data-v="${k}">${l}</button>`).join('')}</div>
+   ${f.choice&&f.choice!=='later'?`<textarea id="fu-out" data-m="fu.outcome" placeholder="What happened?" style="min-height:72px">${esc(f.outcome)}</textarea>`:''}
+   ${f.choice==='later'?`<div class="sub">Ask again: <b>tomorrow</b> (change on save)</div>`:''}
+   ${f.choice?`<button class="btn dark" data-act="fu-save">Save answer</button>${fnote('Writes',['.journal/followups.json','followups.md'])}`:''}</div>`;
+  return `<div class="hdr"><div><div class="date">Thu 19 Nov</div><h1>Good evening</h1></div><button class="btn small" data-act="toast-settings" aria-label="Settings">⚙</button></div>
+  <div class="pad">
+   <div class="streak"><strong>12</strong><div><b>day streak</b><div class="sub">Best 19 · log today to make it 13</div></div></div>
+   <div class="dots" aria-label="This week">${['M','T','W','T','F','S','S'].map((d,i)=>`<span class="${i<3?'y':i===3?'t':''}">${d}</span>`).join('')}</div>
+   <button class="btn continue wide" data-act="continue"><span>Continue: The Patient Mind<small>p. 142 of 312 · 46% · last 18 Nov</small></span><span>→</span></button>
+   <div class="row"><button class="btn primary" data-act="log-full">Log a learning</button><button class="btn" data-act="log-quick">Quick note</button></div>
+   ${fuCard}
+   <button class="card" style="text-align:left;cursor:pointer" data-go="review"><div class="kicker">Recall</div><h2>4 ideas to recall · about 2 min</h2><div class="sub">+2 waiting for tomorrow</div></button>
+   <button class="card" style="text-align:left;cursor:pointer" data-act="weekly"><div class="kicker">Weekly learning review</div><h2>Sunday · in 3 days</h2><div class="sub">You can start it early.</div></button>
+   <div class="sub">Coming up: <b>Ask for a 5-minute pre-mortem in Tuesday planning</b> · Tue 24 Nov</div>
+  </div>`}
+
+/* --- Log flow --- */
+const LOGSTEPS=['source','progress','ideas','quote','try','connects','question','check'];
+function logScreen(){
+  const L=S.log;
+  if(L.saved) return `<div class="done"><div class="big">13</div><h1 class="q">Saved. 13-day streak.</h1>
+    <p class="sub">${L.quick?'Your quick note is in.':'Your ideas come back for recall tomorrow.'}</p>
+    ${fnote('Commit',[L.quick?'quick: 2026-11-19':`learning: ${curSrc().title} · 2026-11-19`])}
+    <button class="btn primary wide" data-go="today">Back to Today</button></div>`;
+  if(L.quick) return quickScreen();
+  const k=LOGSTEPS[L.step],n=LOGSTEPS.length;const opt=['quote','try','connects','question'].includes(k);
+  return `<div class="ftop"><button class="back" data-act="log-back" aria-label="Back">←</button><div class="prog"><i style="width:${(L.step+1)/n*100}%"></i></div><span class="count">${L.step+1}/${n}</span></div>
+  <div class="pad">${STEPS[k]()}</div>
+  <div class="ffoot">${opt?`<button class="btn skip" data-act="log-skip">Skip</button>`:''}
+   ${k==='check'?`<button class="btn primary" data-act="log-save">Save</button>`:`<button class="btn primary" data-act="log-next">Next</button>`}</div>`}
+function curSrc(){const L=S.log;return L.newSrc?{title:L.ns.title||'Untitled',author:L.ns.author,type:L.ns.type,slug:slugify(L.ns.title||'untitled')}:SRC[L.src]}
+const slugify=s=>s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,40);
+const srcPath=s=>`sources/${TYPEDIR[s.type]}/${s.slug}.md`;
+const STEPS={
+  source(){const L=S.log;const recent=['pm','st','ck','ll'];
+    return `<div class="kicker">Source</div><h1 class="q">What did you learn from?</h1>
+    <div class="srcpick">${recent.map(k=>`<button class="${!L.newSrc&&L.src===k?'on':''}" data-act="pick-src" data-v="${k}"><span><b>${esc(SRC[k].title)}</b><small>${SRC[k].type} · ${esc(SRC[k].prog||(SRC[k].page?'p. '+SRC[k].page:SRC[k].last))}</small></span><span>${!L.newSrc&&L.src===k?'✓':''}</span></button>`).join('')}
+    <button class="${L.newSrc?'on':''}" data-act="new-src"><span><b>+ New source</b><small>book, article, podcast, video, course or conversation</small></span></button></div>
+    ${L.newSrc?`<div class="chips">${TYPES.map(t=>`<button class="chip ${L.ns.type===t?'on':''}" data-act="ns-type" data-v="${t}">${t}</button>`).join('')}</div>
+      <label class="lbl" for="ns-t">Title</label><input id="ns-t" data-m="log.ns.title" value="${esc(L.ns.title)}" placeholder="e.g. Notes on Craft">
+      <label class="lbl" for="ns-a">Author or host</label><input id="ns-a" data-m="log.ns.author" value="${esc(L.ns.author)}" placeholder="e.g. Ruth Abara">
+      <label class="lbl" for="ns-l">Link (optional)</label><input id="ns-l" data-m="log.ns.link" value="${esc(L.ns.link)}" placeholder="https://…" inputmode="url">
+      ${fnote('Creates',[srcPath(curSrc())])}`:''}`},
+  progress(){const L=S.log,s=curSrc();
+    if(s.type!=='book') return `<div class="kicker">Progress · ${esc(s.title)}</div><h1 class="q">How far did you get?</h1>
+      <div class="chips">${['Finished it','About halfway','Just started'].map((x,i)=>`<button class="chip ${i===0?'on':''}">${x}</button>`).join('')}</div>
+      <label class="lbl" for="pr-x">Where you stopped (optional)</label><input id="pr-x" placeholder="Week 3, lesson 2 · or 24:10">`;
+    const pct=L.unit==='page'&&+L.page?Math.round(+L.page/312*100):null;
+    return `<div class="kicker">Progress · ${esc(s.title)}</div><h1 class="q">Where did you stop?</h1>
+    <div class="seg">${[['page','Page'],['chapter','Chapter'],['pct','%']].map(([k,l])=>`<button class="${L.unit===k?'on':''}" data-act="unit" data-v="${k}">${l}</button>`).join('')}</div>
+    ${L.unit==='page'?`<label class="lbl" for="pr-p">Page (last time: 142)</label><input id="pr-p" inputmode="numeric" data-m="log.page" value="${esc(L.page)}">
+      <div class="bar"><i style="width:${pct||46}%"></i></div><div class="sub">${pct?`pp. 142–${esc(L.page)} · ${+L.page-142} pages today · ${pct}% of 312`:'Type the page you stopped on.'}</div>`:''}
+    ${L.unit==='chapter'?`<label class="lbl" for="pr-c">Chapter</label><input id="pr-c" data-m="log.chapter" value="${esc(L.chapter)}">`:''}
+    ${L.unit==='pct'?`<label class="lbl" for="pr-pc">Percent (e.g. from Kindle)</label><input id="pr-pc" inputmode="numeric" data-m="log.pct" value="${esc(L.pct)}" placeholder="52">`:''}`},
+  ideas(){const L=S.log;
+    return `<div class="kicker">Key ideas · 1 to 3</div><h1 class="q">What's the idea, in your own words?</h1>
+    <p class="sub">Write it the way you'd tell a friend. One sentence each is enough.</p>
+    ${L.ideas.map((v,i)=>`<label class="lbl" for="id-${i}">Idea ${i+1}${i?' (optional)':''}</label><textarea id="id-${i}" data-m="log.ideas.${i}" style="min-height:80px" placeholder="${i?'Another idea…':'e.g. Starting is the hard part, so make starting automatic.'}">${esc(v)}</textarea>`).join('')}
+    ${L.ideas.length<3?`<button class="btn link" data-act="add-idea" style="align-self:flex-start">+ Add another idea</button>`:''}
+    ${fnote('Each idea gets an ID',['<!-- id:… --> so it can come back for recall'])}`},
+  quote(){const L=S.log;return `<div class="kicker">Worth keeping · optional</div><h1 class="q">A line you want to keep?</h1>
+    <label class="lbl" for="qt">Quote or highlight</label><textarea id="qt" data-m="log.quote" placeholder="Paste or type it">${esc(L.quote)}</textarea>
+    <label class="lbl" for="qp">Page</label><input id="qp" inputmode="numeric" data-m="log.qpage" value="${esc(L.qpage)}" placeholder="158">`},
+  try(){const L=S.log;const opts=[['tomorrow','Tomorrow'],['weekend','This weekend'],['next-week','Next week'],['pick','Pick a date'],['none',"Don't ask"]];
+    const due={tomorrow:'Fri 20 Nov',weekend:'Sat 21 Nov','next-week':'Thu 26 Nov',pick:L.date,none:''}[L.when];
+    return `<div class="kicker">I'll try · optional</div><h1 class="q">How will you use it?</h1>
+    <textarea id="tr" data-m="log.tryText" placeholder="e.g. Same two-minute ritual before every writing block: water, timer, one sentence.">${esc(L.tryText)}</textarea>
+    <label class="lbl">When should I ask "Did you try it?"</label>
+    <div class="chips">${opts.map(([k,l])=>`<button class="chip ${L.when===k?'on':''}" data-act="when" data-v="${k}">${l}</button>`).join('')}</div>
+    ${L.when==='pick'?`<input type="date" id="tr-d" data-m="log.date" value="${esc(L.date)}">`:''}
+    ${L.when!=='none'?`<div class="sub">You'll see it on Today on <b>${esc(due)}</b>.</div>${fnote('Adds a follow-up to',['.journal/followups.json','followups.md'])}`:''}`},
+  connects(){const L=S.log;const items=[['k7f2','Attention is a budget'],['m3c9','Boredom is the doorway to focus'],['c1x0','Checklists are for steps experts skip'],['r5n1','Review when it feels slightly hard'],['ck','Why Checklists Beat Willpower'],['#focus','#focus'],['#habits','#habits'],['#attention','#attention'],['#work','#work']];
+    return `<div class="kicker">Connects to · optional</div><h1 class="q">What does it connect to?</h1>
+    <label class="lbl">Earlier ideas</label><div class="chips">${items.slice(0,4).map(([k,l])=>`<button class="chip ${L.conn.includes(k)?'on':''}" data-act="conn" data-v="${k}">${esc(l)}</button>`).join('')}</div>
+    <label class="lbl">Sources</label><div class="chips">${['ck','ll','jo'].map(k=>`<button class="chip ${L.conn.includes(k)?'on':''}" data-act="conn" data-v="${k}">${esc(SRC[k].title.split(' · ')[0])}</button>`).join('')}</div>
+    <label class="lbl">Topics</label><div class="chips">${items.slice(5).map(([k,l])=>`<button class="chip ${L.conn.includes(k)?'on':''}" data-act="conn" data-v="${k}">${l}</button>`).join('')}<button class="chip" data-act="toast-topic">+ topic</button></div>`},
+  question(){const L=S.log;return `<div class="kicker">Question · optional</div><h1 class="q">One question it raised?</h1>
+    <textarea id="qq" data-m="log.question" placeholder="e.g. Does a ritual still work if I change it every week?">${esc(L.question)}</textarea>
+    <p class="sub">Open questions are listed in the Library, so a later source can answer them.</p>`},
+  check(){const L=S.log,s=curSrc();const ideas=L.ideas.filter(Boolean);
+    const prog=s.type==='book'?(L.unit==='page'?`pp. 142–${L.page}`:L.unit==='chapter'?L.chapter:`${L.pct||'?'}%`):'Finished it';
+    const files=[`${dayDir}/${s.slug}.md`,srcPath(s),'.journal/index.json','.journal/recall.json'];if(L.when!=='none'&&L.tryText)files.push('.journal/followups.json','followups.md');
+    return `<div class="kicker">Check & save</div><h1 class="q">${esc(s.title)}</h1>
+    <div class="sum"><b>Progress</b>${esc(prog)}</div>
+    <div class="sum"><b>Key ideas</b>${ideas.length?ideas.map((x,i)=>`${i+1}. ${esc(x)}`).join('<br>'):'<span class="muted">No ideas yet. Go back to step 3: at least one is needed.</span>'}</div>
+    ${L.quote?`<div class="sum"><b>Worth keeping</b>“${esc(L.quote)}”${L.qpage?` (p. ${esc(L.qpage)})`:''}</div>`:''}
+    ${L.tryText?`<div class="sum"><b>I'll try</b>${esc(L.tryText)}${L.when!=='none'?' · follow-up set':''}</div>`:''}
+    <div class="sum"><b>Connects to</b>${L.conn.length?L.conn.map(c=>esc(IDEAS[c]?IDEAS[c].t.split(':')[0]:SRC[c]?SRC[c].title:c)).join(' · '):'—'}</div>
+    ${L.question?`<div class="sum"><b>Question</b>${esc(L.question)}</div>`:''}
+    ${fnote('One commit · learning: '+s.title+' · 2026-11-19',files)}`},
+};
+function quickScreen(){const L=S.log;const opts=['pm','st','ck',null];
+  return `<div class="ftop"><button class="back" data-go="today" aria-label="Back">←</button><div class="prog"><i style="width:100%"></i></div><span class="count">1/1</span></div>
+  <div class="pad"><div class="kicker">Quick note · busy day</div><h1 class="q">One idea, one sentence.</h1>
+  <div class="chips">${opts.map(k=>`<button class="chip ${L.src===k?'on':''}" data-act="q-src" data-v="${k}">${k?esc(SRC[k].title):'No source'}</button>`).join('')}</div>
+  <textarea id="qk" data-m="log.quickText" placeholder="e.g. Rituals beat willpower because they skip the decision.">${esc(L.quickText)}</textarea>
+  ${fnote('Writes (mode: quick)',[L.src?`${dayDir}/${SRC[L.src].slug}.md`:`${dayDir}/quick.md`,'.journal/index.json','.journal/recall.json'])}
+  <button class="btn link" data-act="log-full" style="align-self:flex-start">Switch to the full entry →</button></div>
+  <div class="ffoot"><button class="btn primary" data-act="quick-save">Save</button></div>`}
+
+/* --- Library --- */
+function library(){const B=S.lib;const keys=Object.keys(SRC).filter(k=>(B.filter==='all'||SRC[k].status===B.filter)&&(B.type==='all'||SRC[k].type===B.type));
+  const cnt=st=>Object.values(SRC).filter(s=>s.status===st).length;
+  return `<div class="hdr"><h1>Library</h1><button class="btn small" data-act="add-open">+ Reading list</button></div>
+  <div class="pad">
+  <div class="chips">${['reading','want','finished','abandoned','all'].map(f=>`<button class="chip ${B.filter===f?'on':''}" data-act="lf" data-v="${f}">${f==='all'?'All':STATUS[f]} ${f==='all'?'':cnt(f)}</button>`).join('')}</div>
+  <div class="chips">${['all',...TYPES].map(t=>`<button class="chip ${B.type===t?'on':''}" data-act="lt" data-v="${t}" style="min-height:34px;padding:5px 11px;font-size:13px">${t==='all'?'All types':t}</button>`).join('')}</div>
+  <div class="list">${keys.length?keys.map(k=>{const s=SRC[k];return `<button class="srow" data-act="open-src" data-v="${k}">
+     <span class="m"><span class="pill ${s.status==='reading'?'acc':''}">${s.type}</span><span>${esc(STATUS[s.status])}${s.rating?' · '+'★'.repeat(s.rating):''}</span></span>
+     <span class="t">${esc(s.title)}</span><span class="sub" style="font-size:13px">${esc(s.author)}</span>
+     ${s.status==='reading'?`<span class="bar"><i style="width:${s.pct}%"></i></span>`:''}
+     <span class="m"><span>${s.status==='reading'?(s.prog||`p. ${s.page} of ${s.pages} · ${s.pct}%`):s.status==='abandoned'?`stopped at p. ${s.page}`:''}</span><span>${s.ideas} ideas · ${esc(s.last)}</span></span></button>`}).join(''):`<div class="card"><span class="sub">Nothing here with these filters.</span></div>`}</div>
+  <div class="card"><div class="kicker">Open questions · 3</div><div style="font-size:14px">${esc(QUESTION.t)} <span class="muted">· The Patient Mind</span></div></div>
+  </div>${B.open?sheet():''}${B.addOpen?addSheet():''}`}
+function sheet(){const B=S.lib,k=B.open,s=SRC[k];const ideas=Object.entries(IDEAS).filter(([,v])=>v.s===k);
+  if(B.mode==='finish') return `<div class="scrim" data-act="close-sheet"><div class="sheet" data-stop>
+    <div class="grab"></div><div class="kicker">Finish · ${esc(s.title)}</div><h1 class="q" style="font-size:23px">How was it?</h1>
+    <div class="stars">${[1,2,3,4,5].map(n=>`<button class="${B.rating>=n?'on':''}" data-act="rate" data-v="${n}" aria-label="${n} stars">★</button>`).join('')}</div>
+    <label class="lbl" for="fin-t">What I took from this</label><textarea id="fin-t" data-m="lib.take" placeholder="One paragraph: what will you still remember in a year?">${esc(B.take)}</textarea>
+    <label class="lbl">Top ideas · pick up to 3</label><div class="chips">${Object.entries(IDEAS).filter(([,v])=>v.s===k||k!=='pm').slice(0,k==='pm'?3:3).map(([id,v])=>`<button class="chip ${B.top.includes(id)?'on':''}" data-act="top" data-v="${id}">${esc(v.t)}</button>`).join('')}</div>
+    <label class="lbl" for="fin-r">Recommend to (optional)</label><input id="fin-r" data-m="lib.rec" value="${esc(B.rec)}" placeholder="Anyone who works with notifications on">
+    ${fnote('Writes',[srcPath(s),'.journal/index.json'])}
+    <div class="row"><button class="btn" data-act="sheet-detail">Cancel</button><button class="btn primary" data-act="finish-save">Mark finished</button></div></div></div>`;
+  return `<div class="scrim" data-act="close-sheet"><div class="sheet" data-stop>
+   <div class="grab"></div>
+   <div class="row" style="align-items:center"><span><span class="pill">${s.type}</span> <span class="pill ${s.status==='reading'?'acc':''}">${STATUS[s.status]}</span></span><button class="btn link" data-act="close-sheet" style="flex:0">Close</button></div>
+   <h1 class="q" style="font-size:24px;margin:0">${esc(s.title)}</h1><div class="sub">${esc(s.author)} · ${s.entries} entries · ${s.ideas} ideas</div>
+   ${s.status==='reading'?`<div class="bar"><i style="width:${s.pct}%"></i></div><div class="sub">${esc(s.prog||`p. ${s.page} of ${s.pages} · ${s.pct}%`)}</div>
+     <div class="row"><button class="btn primary small" data-act="sheet-log">Log</button><button class="btn small" data-act="sheet-finish">Finish</button><button class="btn small" data-act="abandon">Abandon</button></div>`:''}
+   ${s.status==='want'?`<button class="btn primary" data-act="start-src">Start reading</button>`:''}
+   ${s.takeaway?`<div class="sum"><b>What I took from this · ${'★'.repeat(s.rating)}</b>${esc(s.takeaway)}</div>`:''}
+   ${s.reason?`<div class="sum"><b>Why I stopped</b>${esc(s.reason)}</div>`:''}
+   ${ideas.length?`<div class="kicker">Log</div><div class="tl">${k==='pm'?`<div><b>18 Nov · pp. 120–142 · Ch. 6</b>${esc(IDEAS.k7f2.t)}<br>${esc(IDEAS.p2d8.t)}</div><div><b>12 Nov · pp. 88–120</b>${esc(IDEAS.m3c9.t)}</div><div><b>2 Nov – 9 Nov</b><span class="muted">4 earlier entries · 6 ideas</span></div>`:ideas.map(([,v])=>`<div><b>${v.d} · ${esc(v.w)}</b>${esc(v.t)}</div>`).join('')}</div>`:''}
+   ${k==='pm'?`<div class="kicker">Worth keeping</div><blockquote>${esc(QUOTE.t)} <span class="muted">(p. 131)</span></blockquote>
+     <div class="kicker">Follow-ups</div><div class="sum" style="font-size:14px">Phone in another room for the first hour · <b>due today</b></div>
+     <div class="kicker">Open question</div><div class="sum" style="font-size:14px">${esc(QUESTION.t)}</div>`:''}
+   ${fnote('Source file',[srcPath(s)])}</div></div>`}
+function addSheet(){const A=S.lib.add;return `<div class="scrim" data-act="close-add"><div class="sheet" data-stop><div class="grab"></div>
+  <div class="kicker">Add to reading list</div><h1 class="q" style="font-size:23px">What do you want to read?</h1>
+  <div class="chips">${TYPES.slice(0,5).map(t=>`<button class="chip ${A.type===t?'on':''}" data-act="add-type" data-v="${t}">${t}</button>`).join('')}</div>
+  <label class="lbl" for="ad-t">Title</label><input id="ad-t" data-m="lib.add.title" value="${esc(A.title)}" placeholder="e.g. The Quiet Engine">
+  <label class="lbl" for="ad-a">Author</label><input id="ad-a" data-m="lib.add.author" value="${esc(A.author)}">
+  ${fnote('Creates (status: want)',[`sources/${TYPEDIR[A.type]}/${slugify(A.title)||'…'}.md`])}
+  <div class="row"><button class="btn" data-act="close-add">Cancel</button><button class="btn primary" data-act="add-save">Add</button></div></div></div>`}
+
+/* --- Review --- */
+function review(){const R=S.rv;
+  const seg=`<div class="seg" style="margin:0 20px"><button class="${R.tab==='recall'?'on':''}" data-act="rtab" data-v="recall">Recall · 4</button><button class="${R.tab==='weekly'?'on':''}" data-act="rtab" data-v="weekly">Weekly · W47</button></div>`;
+  if(R.tab==='weekly') return weekly(seg);
+  if(!R.started) return `<div class="hdr"><h1>Review</h1></div>${seg}<div class="pad">
+    <div class="card hi"><div class="kicker">Today · up to 5 cards</div><h2>4 ideas are due</h2>
+    <div class="sub">For each one you'll see the source and a hint. Try to recall the idea, then reveal it.</div>
+    <div class="list" style="gap:4px;font-size:14px">${RECALL.map(r=>`<div>· ${esc(SRC[IDEAS[r.id].s].title.split(' · ')[0])} <span class="muted">· ${r.step}</span></div>`).join('')}</div>
+    <button class="btn primary" data-act="r-start">Start · about 2 min</button></div>
+    <div class="sub">+2 waiting for tomorrow, so the queue never piles up.</div>
+    <div class="card"><div class="kicker">Schedule</div><div class="sub">1 day → 1 week → 1 month → 3 months → 6 months, then retired as learned. Fuzzy repeats the gap; Forgot restarts at 1 day.</div></div></div>`;
+  if(R.finished){const g=Object.values(R.grade);return `<div class="done"><div class="big">${g.filter(x=>x==='ok').length}/${RECALL.length}</div><h1 class="q">remembered</h1>
+    <p class="sub">${g.filter(x=>x==='fz').length} fuzzy · ${g.filter(x=>x==='fg').length} forgot · ${Object.keys(R.retired).length} retired</p>
+    ${fnote('Commit · recall: 4 ideas · 2026-11-19',['reviews/recall/2026/2026-11.md','.journal/recall.json'])}
+    <button class="btn primary wide" data-go="today">Back to Today</button></div>`}
+  const r=RECALL[R.i],idea=IDEAS[r.id],s=SRC[idea.s],g=R.grade[r.id];
+  return `<div class="ftop"><button class="back" data-act="r-back" aria-label="Back">←</button><div class="prog"><i style="width:${(R.i+1)/RECALL.length*100}%"></i></div><span class="count">${R.i+1}/${RECALL.length}</span></div>
+  <div class="pad"><div class="rcard">
+    <div class="kicker">${r.step}</div>
+    <div><b>${esc(s.title)}</b><div class="sub">${esc(s.author)} · ${idea.d} · ${esc(idea.w)}</div></div>
+    <div class="chips">${s.topics.map(t=>`<span class="pill">#${t}</span>`).join('')}</div>
+    ${R.revealed?`<p class="reveal">${esc(idea.t)}</p>`:`<div class="hidden-idea">What was the idea?<br><small>Say it to yourself, then reveal.</small></div>`}
+  </div>
+  ${!R.revealed?`<button class="btn dark wide" data-act="r-reveal">Reveal</button>`:`
+   <div class="grade"><button class="g-ok ${g==='ok'?'on':''}" data-act="r-grade" data-v="ok">Remembered<small>${r.ok}</small></button>
+    <button class="g-fz ${g==='fz'?'on':''}" data-act="r-grade" data-v="fz">Fuzzy<small>${r.fz}</small></button>
+    <button class="g-fg ${g==='fg'?'on':''}" data-act="r-grade" data-v="fg">Forgot<small>back to 1 day</small></button></div>
+   ${g?`<label class="lbl" for="r-now">What does it mean to me now? (optional)</label><textarea id="r-now" data-m="rv.now.${r.id}" style="min-height:72px" placeholder="Where did it show up this week?">${esc(R.now[r.id]||'')}</textarea>`:''}
+   <button class="btn link" data-act="r-retire" style="align-self:flex-start">${R.retired[r.id]?'✓ Retired: not worth keeping':'Retire this idea…'}</button>`}
+  </div>
+  ${R.revealed?`<div class="ffoot"><button class="btn primary" data-act="r-next" ${g||R.retired[r.id]?'':'disabled style="opacity:.5"'}>${R.i+1<RECALL.length?'Next card':'Finish & save'}</button></div>`:''}`}
+const WSTEPS=5;
+function weekly(seg){const W=S.rv.wk;
+  if(W.saved) return `<div class="done"><div class="big">W47</div><h1 class="q">Week reviewed.</h1>
+    ${fnote('Commit · weekly review: 2026-W47',['reviews/weekly/2026/2026-W47.md','.journal/followups.json','followups.md'])}<button class="btn primary wide" data-go="today">Back to Today</button></div>`;
+  if(W.step===0) return `<div class="hdr"><h1>Review</h1></div>${seg}<div class="pad">
+    <div class="kicker">Your week in 30 seconds · 16–22 Nov</div>
+    <div class="tiles"><div class="tile"><strong>5</strong><span>days logged</span></div><div class="tile"><strong>4</strong><span>sources</span></div><div class="tile"><strong>74</strong><span>pages</span></div>
+     <div class="tile"><strong>9</strong><span>ideas</span></div><div class="tile"><strong>8/11</strong><span>remembered</span></div><div class="tile"><strong>2</strong><span>applied</span></div></div>
+    <div class="dots" style="justify-content:space-between">${['M','T','W','T','F','S','S'].map((d,i)=>`<span class="${i<3?'y':i===3?'t':''}">${d}</span>`).join('')}</div>
+    <div class="sub">Most time on The Patient Mind (pp. 88–142). New this week: Why Checklists Beat Willpower, Intro to Statistics week 3.</div>
+    <div style="flex:1"></div><button class="btn primary wide" data-act="w-next">Start the review · 5 steps</button></div>`;
+  const weekIdeas=['k7f2','p2d8','c1x0','s4m2'];const extra=[['q1','Writing the first line badly is how you get to the second. (quick note)']];
+  const body={
+   1:`<div class="kicker">Top ideas · pick up to 3</div><h1 class="q">Which ideas mattered most this week?</h1>
+     <div class="list">${[...weekIdeas.map(id=>[id,IDEAS[id].t+' · '+SRC[IDEAS[id].s].title.split(' · ')[0]]),...extra].map(([id,t])=>`<button class="chip ${W.top.includes(id)?'on':''}" data-act="w-top" data-v="${id}" style="border-radius:14px;padding:11px 14px">${esc(t)}</button>`).join('')}</div>`,
+   2:`<div class="kicker">What I applied</div><h1 class="q">What did you actually try?</h1>
+     <div class="sum"><b>Closed this week</b>✓ Write tomorrow's first task before closing the laptop · Done, 17 Nov<br>◐ Use a checklist for the Friday release · Partly, 18 Nov</div>
+     <textarea id="w-ap" data-m="rv.wk.applied" placeholder="Anything else you put into practice?">${esc(W.applied)}</textarea>`,
+   3:`<div class="kicker">What to read next</div><h1 class="q">What's next on the pile?</h1>
+     <div class="srcpick"><button class="${W.next==='nc'?'on':''}" data-act="w-nextsrc" data-v="nc"><span><b>Notes on Craft</b><small>Ruth Abara · on your reading list since 17 Nov</small></span><span>${W.next==='nc'?'✓':''}</span></button>
+     <button class="${W.next==='st'?'on':''}" data-act="w-nextsrc" data-v="st"><span><b>Keep going: Intro to Statistics</b><small>Week 4 of 8</small></span><span>${W.next==='st'?'✓':''}</span></button>
+     <button data-act="add-open-w"><span><b>+ Something new</b><small>Adds it to your reading list</small></span></button></div>`,
+   4:`<div class="kicker">Deeper question</div><div class="row" style="align-items:flex-start"><h1 class="q" style="flex:1">${esc(WQ[W.q])}</h1><button class="btn small" data-act="w-swap" style="flex:0 0 auto" aria-label="Another question">↻</button></div>
+     <textarea id="w-qa" data-m="rv.wk.qa" placeholder="Take a minute with it.">${esc(W.qa)}</textarea><div class="sub">↻ swaps it for another from the library of about 40.</div>`,
+   5:`<div class="kicker">Next week</div><h1 class="q">One thing to try next week?</h1>
+     <textarea id="w-tr" data-m="rv.wk.tryText" placeholder="e.g. Ask for a 5-minute pre-mortem in Tuesday planning.">${esc(W.tryText)}</textarea>
+     <div class="sub">I'll ask "Did you try it?" on <b>Fri 27 Nov</b>.</div>${fnote('Saves',['reviews/weekly/2026/2026-W47.md','.journal/followups.json','followups.md'])}`};
+  return `<div class="ftop"><button class="back" data-act="w-back" aria-label="Back">←</button><div class="prog"><i style="width:${W.step/WSTEPS*100}%"></i></div><span class="count">${W.step}/${WSTEPS}</span></div>
+   <div class="pad">${body[W.step]}</div>
+   <div class="ffoot">${W.step>1&&W.step<5?`<button class="btn skip" data-act="w-next">Skip</button>`:''}<button class="btn primary" data-act="${W.step===5?'w-save':'w-next'}">${W.step===5?'Save review':'Next'}</button></div>`}
+
+/* --- History --- */
+const FULL=[2,3,5,7,9,10,11,12,13,15,16,17,18],QUICK=[8,14];
+const DAYINFO={18:[['pm',['k7f2','p2d8']]],17:[['ck',['c1x0']],['quick',['Writing the first line badly is how you get to the second.']]],16:[['st',['s4m2']]],15:[['ll',['r5n1']]],13:[['br',['b8t3']]],12:[['pm',['m3c9']]],10:[['jo',['j6w1']]]};
+function corpus(){const out=[];for(const [id,v] of Object.entries(IDEAS))out.push({kind:'Idea',text:v.t,meta:`${SRC[v.s].title} · ${v.d}`,day:+v.d.split(' ')[0],m:v.d.endsWith('Nov')});
+  out.push({kind:'Quote',text:QUOTE.t,meta:'The Patient Mind · p. 131 · 18 Nov',day:18,m:true},{kind:'Question',text:QUESTION.t,meta:'The Patient Mind · 18 Nov',day:18,m:true});
+  for(const s of Object.values(SRC))out.push({kind:'Source',text:s.title,meta:`${s.author} · ${STATUS[s.status]}`,src:s});
+  for(const t of ['focus','habits','attention','systems','memory','statistics','work'])out.push({kind:'Topic',text:'#'+t,meta:'topic'});return out}
+function historyView(){const H=S.hist;const q=H.q.trim().toLowerCase();
+  const hits=q?corpus().filter(c=>c.text.toLowerCase().includes(q)||c.meta.toLowerCase().includes(q)):[];
+  const hl=t=>{if(!q)return esc(t);const i=t.toLowerCase().indexOf(q);return i<0?esc(t):esc(t.slice(0,i))+'<mark>'+esc(t.slice(i,i+q.length))+'</mark>'+esc(t.slice(i+q.length))};
+  const cells=[];for(let i=0;i<6;i++)cells.push('<span></span>');for(let d=1;d<=30;d++){const c=[FULL.includes(d)?'full':QUICK.includes(d)?'quick':'',d===19?'today':'',H.day===d?'sel':''].join(' ');cells.push(`<button class="${c}" data-act="day" data-v="${d}" ${d>19?'disabled':''}>${d}<i></i></button>`)}
+  return `<div class="hdr"><h1>History</h1></div><div class="pad">
+   <input type="search" id="h-q" data-m="hist.q" value="${esc(H.q)}" placeholder="Search ideas, quotes, sources, topics…" autocomplete="off">
+   ${q?`<div class="list">${hits.length?hits.map((h,i)=>`<button class="hit" data-act="hit" data-v="${i}"><small>${h.kind}</small><span>${hl(h.text)}</span><small>${hl(h.meta)}</small></button>`).join(''):'<div class="sub">No matches. Try "focus", "checklist" or "arch".</div>'}</div>`:`
+   <div class="tiles" style="grid-template-columns:repeat(3,1fr)"><div class="tile"><strong>12</strong><span>day streak</span></div><div class="tile"><strong>19</strong><span>best</span></div><div class="tile"><strong>15</strong><span>days in Nov</span></div></div>
+   <div class="card"><div class="row" style="align-items:center"><button class="btn small" style="flex:0" data-act="toast-month">‹</button><b style="text-align:center">November 2026</b><button class="btn small" style="flex:0" disabled>›</button></div>
+    <div class="cal">${['M','T','W','T','F','S','S'].map(d=>`<span class="h">${d}</span>`).join('')}${cells.join('')}</div>
+    <div class="sub" style="font-size:12.5px">● learning logged · ○ quick note only · today outlined</div></div>
+   ${dayPanel(H.day)}
+   <button class="card" style="text-align:left;cursor:pointer" data-act="toast-fu"><div class="kicker">Follow-ups</div><div style="font-size:14px">1 due today · 1 upcoming · 6 closed</div></button>`}
+  </div>${H.open?hitSheet(H.open):''}`}
+function dayPanel(d){if(!d)return '';const label=`${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][(d-1)%7]} ${d} Nov`;
+  if(d===19) return `<div class="card"><div class="kicker">${label} · today</div><span class="sub">Nothing logged yet today.</span><button class="btn primary small" data-act="log-full">Log a learning</button></div>`;
+  const info=DAYINFO[d]||(FULL.includes(d)?[['pm',null]]:QUICK.includes(d)?[['quick',['Notice which notifications I actually read.']]]:null);
+  if(!info) return `<div class="card"><div class="kicker">${label}</div><span class="sub">No entry this day.</span></div>`;
+  return `<div class="card"><div class="kicker">${label}</div>${info.map(([k,ids])=>k==='quick'?`<div><b>Quick note</b><div style="font-size:14px">${esc(ids[0])}</div></div>`:
+    `<div><b>${esc(SRC[k].title)}</b><div style="font-size:14px">${ids?ids.map(id=>esc(IDEAS[id].t)).join('<br>'):'<span class="muted">1 idea · pp. 60–88</span>'}</div></div>`).join('')}
+    ${fnote('File',[`daily/2026/11/2026-11-${String(d).padStart(2,'0')}/${info[0][0]==='quick'?'quick':SRC[info[0][0]].slug}.md`])}
+    <div class="row"><button class="btn small" data-act="toast-edit">Edit</button><button class="btn small" data-act="toast-gh">Open on GitHub</button></div></div>`}
+function hitSheet(h){return `<div class="scrim" data-act="close-hit"><div class="sheet" data-stop><div class="grab"></div><div class="kicker">${h.kind}</div>
+  <p class="reveal">${esc(h.text)}</p><div class="sub">${esc(h.meta)}</div>
+  ${h.day?`<button class="btn" data-act="day" data-v="${h.day}">Open ${h.day} Nov</button>`:''}${h.src?`<button class="btn" data-act="hit-src">Open in Library</button>`:''}
+  <button class="btn link" data-act="close-hit">Close</button></div></div>`}
+
+/* ---------- side notes ---------- */
+const SIDE={
+  connect:['First run','The app checks the repo is private and that the token can write, then creates the starter files. The token never leaves this browser.'],
+  today:['Today','Everything due lands here: the "Did you try it?" follow-up, recall cards and the Sunday review. "Continue" skips the source step, so a regular evening entry is 7 taps plus typing.'],
+  log:['One question per screen','8 steps, about 3 minutes. Steps 4–7 can be skipped. Each step autosaves a draft on the device, cleared only after the commit lands. Quick note is one sentence, from Today.'],
+  library:['Library','Filter by status and type. Tap a source for a bottom sheet with its whole log, quote, follow-ups and open questions. Finish asks for a rating, a paragraph and your top 3 ideas.'],
+  review:['Recall, then reflect','Recall shows the source and a hint first. You try to remember, then reveal. The weekly review starts with your week in 30 seconds, then 5 short steps with a ↻ question.'],
+  history:['Find anything','Dots for learning days, rings for quick-note days. Search runs over ideas, quotes, sources, topics and questions as you type.'],
+};
+function side(){const [h,p]=SIDE[S.screen];$('#side').innerHTML=`<h3>${h}</h3><p>${p}</p><div class="fnote"><b>All screens write to</b><br>infinitepal178/bookjournal-data (private)</div>`}
+
+/* ---------- render & events ---------- */
+const VIEWS={connect,today,log:logScreen,library,review,history:historyView};
+function render(keepFocus){
+  const a=document.activeElement,fid=a&&a.id,pos=a&&a.selectionStart;
+  $('#app').innerHTML=VIEWS[S.screen]();
+  const flow=(S.screen==='log')||(S.screen==='review'&&((S.rv.tab==='recall'&&S.rv.started&&!S.rv.finished)||(S.rv.tab==='weekly'&&S.rv.wk.step>0&&!S.rv.wk.saved)))||S.screen==='connect';
+  $('#tabbar').hidden=flow;
+  document.querySelectorAll('[data-go]').forEach(b=>b.classList.toggle('on',b.dataset.go===S.screen));
+  side();
+  if(keepFocus&&fid){const el=document.getElementById(fid);if(el){el.focus();try{el.setSelectionRange(pos,pos)}catch(e){}}}
+}
+function go(screen,push=true){S.screen=screen;if(push&&location.hash.slice(1)!==screen)window.history.replaceState(null,'','#'+screen);render();$('#app').scrollTop=0;if(window.innerWidth<=440)window.scrollTo(0,0)}
+function setPath(path,val){const p=path.split('.');let o=S;for(let i=0;i<p.length-1;i++)o=o[p[i]];o[p[p.length-1]]=val}
+document.addEventListener('input',e=>{const m=e.target.dataset&&e.target.dataset.m;if(!m)return;setPath(m,e.target.value);
+  if(m==='hist.q'||m==='log.page'||m.startsWith('log.ns')||m.startsWith('lib.add'))render(true)});
+const startLog=(quick,step=0)=>{Object.assign(S.log,{quick,step,saved:false});go('log')};
+const ACT={
+  connect(){toast('Connected · Set up journal<br>README.md, .journal/config.json, index.json, recall.json');go('today')},
+  fu(v){S.fu.choice=v;render()},
+  'fu-save'(){S.fu.saved=true;render();toast('follow-ups<br>.journal/followups.json · followups.md')},
+  continue(){S.log.src='pm';S.log.newSrc=false;startLog(false,1)},
+  'log-full'(){startLog(false,0)},'log-quick'(){S.log.src='pm';startLog(true)},
+  weekly(){S.rv.tab='weekly';go('review')},
+  'log-back'(){if(S.log.step===0)go('today');else{S.log.step--;render()}},
+  'log-next'(){S.log.step=Math.min(LOGSTEPS.length-1,S.log.step+1);render();$('#app').scrollTop=0},
+  'log-skip'(){ACT['log-next']()},
+  'log-save'(){const s=curSrc();S.log.saved=true;render();toast(`learning: ${esc(s.title)} · 2026-11-19<br>${dayDir}/${s.slug}.md<br>${srcPath(s)} · .journal/index.json · recall.json`)},
+  'quick-save'(){S.log.saved=true;render();toast(`quick: 2026-11-19<br>${S.log.src?`${dayDir}/${SRC[S.log.src].slug}.md`:`${dayDir}/quick.md`}`)},
+  'pick-src'(v){S.log.src=v;S.log.newSrc=false;render()},'new-src'(){S.log.newSrc=true;render()},
+  'ns-type'(v){S.log.ns.type=v;render()},unit(v){S.log.unit=v;render()},
+  'add-idea'(){S.log.ideas.push('');render()},when(v){S.log.when=v;render()},
+  conn(v){const c=S.log.conn;c.includes(v)?c.splice(c.indexOf(v),1):c.push(v);render()},
+  'q-src'(v){S.log.src=v==='null'?null:v;render()},
+  'toast-topic'(){toast('New topics are added to .journal/config.json')},
+  'toast-settings'(){toast('Settings: edit prompts &amp; topics, rebuild index, disconnect this device')},
+  lf(v){S.lib.filter=v;render()},lt(v){S.lib.type=v;render()},
+  'open-src'(v){Object.assign(S.lib,{open:v,mode:'detail',rating:0,take:'',top:[],rec:''});render()},
+  'close-sheet'(){S.lib.open=null;render()},'sheet-detail'(){S.lib.mode='detail';render()},
+  'sheet-finish'(){S.lib.mode='finish';render()},'sheet-log'(){S.log.src=S.lib.open;S.lib.open=null;S.log.newSrc=false;startLog(false,1)},
+  abandon(){toast('Abandon asks for one line: what did you get from it anyway?<br>sources/books/the-patient-mind.md')},
+  'start-src'(){toast('reading list → reading<br>sources/books/notes-on-craft.md');S.lib.open=null;render()},
+  rate(v){S.lib.rating=+v;render()},
+  top(v){const t=S.lib.top;t.includes(v)?t.splice(t.indexOf(v),1):t.length<3&&t.push(v);render()},
+  'finish-save'(){const s=SRC[S.lib.open];toast(`finished: ${esc(s.title)}<br>${srcPath(s)} · .journal/index.json`);S.lib.open=null;render()},
+  'add-open'(){S.lib.addOpen=true;render()},'add-open-w'(){S.lib.addOpen=true;go('library')},'close-add'(){S.lib.addOpen=false;render()},
+  'add-type'(v){S.lib.add.type=v;render()},
+  'add-save'(){const A=S.lib.add;toast(`reading list: ${esc(A.title||'Untitled')}<br>sources/${TYPEDIR[A.type]}/${slugify(A.title)||'untitled'}.md`);S.lib.addOpen=false;render()},
+  rtab(v){S.rv.tab=v;render()},
+  'r-start'(){Object.assign(S.rv,{started:true,i:0,revealed:false,finished:false,grade:{},retired:{}});render()},
+  'r-reveal'(){S.rv.revealed=true;render()},
+  'r-grade'(v){S.rv.grade[RECALL[S.rv.i].id]=v;render()},
+  'r-retire'(){const id=RECALL[S.rv.i].id;S.rv.retired[id]?delete S.rv.retired[id]:S.rv.retired[id]=1;render()},
+  'r-back'(){if(S.rv.i===0)S.rv.started=false;else{S.rv.i--;S.rv.revealed=true}render()},
+  'r-next'(){const R=S.rv;const id=RECALL[R.i].id;if(!R.grade[id]&&!R.retired[id])return;if(R.i+1<RECALL.length){R.i++;R.revealed=false;render()}else{R.finished=true;render();toast('recall: 4 ideas · 2026-11-19<br>reviews/recall/2026/2026-11.md · .journal/recall.json')}},
+  'w-next'(){S.rv.wk.step=Math.min(WSTEPS,S.rv.wk.step+1);render();$('#app').scrollTop=0},
+  'w-back'(){S.rv.wk.step--;render()},
+  'w-top'(v){const t=S.rv.wk.top;t.includes(v)?t.splice(t.indexOf(v),1):t.length<3&&t.push(v);render()},
+  'w-nextsrc'(v){S.rv.wk.next=v;render()},
+  'w-swap'(){S.rv.wk.q=(S.rv.wk.q+1)%WQ.length;render()},
+  'w-save'(){S.rv.wk.saved=true;render();toast('weekly review: 2026-W47<br>reviews/weekly/2026/2026-W47.md · .journal/followups.json')},
+  day(v){S.hist.day=+v;S.hist.open=null;S.hist.q='';render()},
+  hit(v){const H=S.hist;const q=H.q.trim().toLowerCase();H.open=corpus().filter(c=>c.text.toLowerCase().includes(q)||c.meta.toLowerCase().includes(q))[+v];render()},
+  'close-hit'(){S.hist.open=null;render()},
+  'hit-src'(){const s=S.hist.open.src;const k=Object.keys(SRC).find(k=>SRC[k]===s);S.hist.open=null;S.hist.q='';Object.assign(S.lib,{open:k,mode:'detail',filter:'all'});go('library')},
+  'toast-month'(){toast('October 2026 · 24 days logged')},'toast-fu'(){toast('Follow-ups list: open, upcoming and closed, with what happened')},
+  'toast-edit'(){toast('Edit opens the same step flow, pre-filled. Changed elsewhere? You see both versions.')},'toast-gh'(){toast('Opens the file in github.com/infinitepal178/bookjournal-data')},
+};
+document.addEventListener('click',e=>{
+  const goEl=e.target.closest('[data-go]');if(goEl){if(goEl.dataset.go==='log')startLog(false,0);else{if(goEl.dataset.go==='review'&&goEl.closest('#app'))S.rv.tab='recall';go(goEl.dataset.go)}return}
+  const el=e.target.closest('[data-act]');if(!el)return;
+  if(el.classList.contains('scrim')&&e.target.closest('[data-stop]'))return;
+  const f=ACT[el.dataset.act];if(f)f(el.dataset.v);
+});
+$('#notesBtn').onclick=()=>{S.notes=!S.notes;document.body.classList.toggle('nonotes',!S.notes);$('#notesBtn').textContent='Notes '+(S.notes?'on':'off');$('#notesBtn').setAttribute('aria-pressed',S.notes)};
+const THEMES=['auto','light','dark'];let ti=0;
+$('#themeBtn').onclick=()=>{ti=(ti+1)%3;const t=THEMES[ti];if(t==='auto')document.documentElement.removeAttribute('data-theme');else document.documentElement.dataset.theme=t;$('#themeBtn').textContent='◐ '+t};
+const fromHash=()=>{const h=location.hash.slice(1);return VIEWS[h]?h:'today'};
+window.addEventListener('hashchange',()=>{const h=fromHash();if(h!==S.screen)go(h,false)});
+S.screen=fromHash();render();
+</script>
+</body>
+</html>

@@ -1,6 +1,6 @@
 {
-  "name": "bookjournal",
-  "short_name": "bookjournal",
+  "name": "Learning journal",
+  "short_name": "Learning journal",
   "description": "A learning journal: what you learned from books, videos and articles, saved to your own private GitHub repo.",
   "start_url": "./#today",
   "scope": "./",

@@ -101,7 +101,7 @@ export function Settings({ settings, journal, overview, update, onDisconnect, to
       </div>
 
       <p className="tiny muted" style={{ textAlign: 'center' }}>
-        bookjournal · your learnings are Markdown files you own
+        Learning journal · your learnings are Markdown files you own
       </p>
     </div>
   );

@@ -70,7 +70,7 @@ export function Connect({ onConnected }: { onConnected: (s: Settings, j: Journal
     <div className="shell">
       <div className="narrow stack" style={{ gap: 18 }}>
         <div className="page-head">
-          <span className="kicker">bookjournal · first time on this device</span>
+          <span className="kicker">Learning journal · first time on this device</span>
           <h1 className="title">Connect your learning journal</h1>
           <p className="muted" style={{ margin: 0 }}>
             Your entries are saved as Markdown files in a private GitHub repo that you own. The token stays on this device.

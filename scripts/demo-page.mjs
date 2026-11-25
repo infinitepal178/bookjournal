@@ -20,7 +20,7 @@ const entry = /<script type="module" crossorigin src="\.\/assets\/([^"]+)"><\/sc
 if (js.length !== 1 || js[0] !== entry) throw new Error(`expected one script, got ${js.join(', ')}`);
 const script = readFileSync(`${dir}/${entry}`, 'utf8').replaceAll('</script', '<\\/script');
 
-const page = `<title>bookjournal demo</title>
+const page = `<title>Learning journal demo</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <style>${style}</style>
 <div id="root"></div>

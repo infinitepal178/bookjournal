@@ -146,7 +146,7 @@ export function calendarLink(f: FollowUp): string {
     action: 'TEMPLATE',
     text: `Follow up: ${f.text}`,
     dates: `${d}/${next}`,
-    details: `From your journal on ${formatShort(f.created)}. Open bookjournal to note how it went.`,
+    details: `From your journal on ${formatShort(f.created)}. Open your learning journal to note how it went.`,
   });
   return `https://calendar.google.com/calendar/render?${params}`;
 }
@@ -156,7 +156,7 @@ export function renderFollowUpsMd(f: FollowUpFile): string {
   const open = f.items.filter((i) => i.status === 'open').sort(byDue);
   const closed = closedFollowUps(f);
   const who = (i: FollowUp) => (i.people.length ? ` (with ${i.people.join(', ')})` : '');
-  const lines = ['# Follow-ups', '', '_Written by bookjournal. Things I said I would do, and what happened._', '', '## Open', ''];
+  const lines = ['# Follow-ups', '', '_Written by the Learning journal app. Things I said I would do, and what happened._', '', '## Open', ''];
   if (!open.length) lines.push('Nothing open.');
   for (const i of open) lines.push(`- [ ] ${i.text}${who(i)}: ask on ${formatShort(i.due)} · from ${formatShort(i.created)}`);
   lines.push('', '## Closed', '');

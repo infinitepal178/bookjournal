@@ -58,7 +58,7 @@ export const serializeConfig = (c: JournalConfig) =>
 
 export const DATA_README = `# My learning journal
 
-This private repo is written by the **bookjournal** app. Every entry is a Markdown file.
+This private repo is written by the **Learning journal** app. Every entry is a Markdown file.
 
 \`\`\`
 sources/books/<title>.md                   one file per book or course: status, rating, what I took from it, and a log

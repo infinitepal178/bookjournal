@@ -110,7 +110,7 @@ export function App() {
 
   const nav = (
     <nav className="tabbar" aria-label="Sections" hidden={page === 'log'}>
-      <span className="brand">bookjournal</span>
+      <span className="brand">Learning journal</span>
       {TABS.map((t) => (
         <a key={t.id} href={`#${t.id}`} aria-current={activeTab === t.id ? 'page' : undefined}>
           <span className="tab-icon">

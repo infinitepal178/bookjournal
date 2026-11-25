@@ -1,6 +1,6 @@
-# bookjournal
+# Learning journal
 
-A phone-first **learning journal**. Each day, note what you learned from a book, video, article, podcast, course or conversation in four short questions:
+A phone-first **learning journal** (this repo is `bookjournal`; the app is called Learning journal). Each day, note what you learned from a book, video, article, podcast, course or conversation in four short questions:
 
 1. **What did you learn today?**
 2. **What will you continue doing?**
